@@ -2,14 +2,14 @@ import json
 
 
 class Score:
-    def __init__(self, UID: int, name: str, has_pdf: bool, pdf_data: bytes = None):
+    def __init__(self, uid: str, name: str, has_pdf: bool, pdf_data: bytes = None):
         """
         Initialize a Score (notes) object.
         :param name: Name of the score.
         :param has_pdf: Whether the score has an associated PDF.
         :param pdf_data: PDF data as bytes, if available. (Read by PyMuPDF)
         """
-        self.UID = UID
+        self.UID = uid
         self.name = name
         self.has_pdf = has_pdf
         self.pdf_data = pdf_data
