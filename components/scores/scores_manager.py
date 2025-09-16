@@ -58,7 +58,7 @@ class ScoresManager:
         """
         with open("all_scores.json", "w") as f:
             data = []
-            for score in self.scores:
+            for score in self.scores.values():
                 data.append(score.to_json())
             f.write(json.dumps(data))
 
