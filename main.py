@@ -36,13 +36,11 @@ class MainScreen(tk.Tk):
                               font=("Arial", 12, "bold"), bd=0, padx=10, pady=2,
                               activebackground='#cc0000')
         close_btn.pack(side='right', padx=10, pady=2)
-        
+
         # Clock on the left
         self.clock_label = tk.Label(top_bar, text="", bg='#f0f0f0', font=("Arial", 12))
         self.clock_label.pack(side='left', padx=10)
         clock_controller(self, self.clock_label)
-
-        
 
     def quit(self):
         """
@@ -64,7 +62,8 @@ class MainScreen(tk.Tk):
                                 command=lambda: self.select_mode(0))
         concert_btn.grid(row=0, column=0, padx=20, pady=20)
 
-        practice_btn = tk.Button(mode_frame, text="Practice", font=("Arial", 24), width=15, height=3,
+        practice_btn = tk.Button(mode_frame, text="Practice", font=("Arial", 24), width=15,
+                                 height=3,
                                  command=lambda: self.select_mode(1))
         practice_btn.grid(row=0, column=1, padx=20, pady=20)
 
@@ -80,7 +79,8 @@ class MainScreen(tk.Tk):
         if mode == 0:
             # Concert mode selected
             self.selected_mode = modes.get(mode, "Unknown")
-            messagebox.showinfo("Mode Selected", f"You have selected {self.selected_mode} mode.\n Currently under development.")
+            messagebox.showinfo("Mode Selected",
+                                f"You have selected {self.selected_mode} mode.\n Currently under development.")
         elif mode == 1:
             # Practice mode selected
             self.selected_mode = modes.get(mode, "Unknown")
@@ -92,7 +92,6 @@ class MainScreen(tk.Tk):
         """
         for widget in self.winfo_children():
             widget.destroy()
-
 
 
 if __name__ == '__main__':
