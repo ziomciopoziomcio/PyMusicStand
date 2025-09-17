@@ -1,6 +1,9 @@
 import tkinter as tk
 import sys
 from tkinter import filedialog, messagebox
+import tempfile
+import pymupdf as fitz
+from PIL import Image, ImageTk
 
 sys.path.append("..")
 
@@ -43,7 +46,9 @@ class GuiPracticeMode():
 
         scores_list = self.scores_manager.list_scores()
         for score in scores_list:
-            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30)
+            def make_open_func(uid=score.UID):
+                return lambda: self.open_score(uid)
+            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30, command=make_open_func())
             score_button.pack(pady=2)
 
 
@@ -147,3 +152,75 @@ class GuiPracticeMode():
 
         back_button = tk.Button(self.master, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
         back_button.pack(pady=5)
+
+    def open_score(self, uid):
+        """
+        Open the score's PDF by UID, if available, in a tkinter PDF viewer.
+        """
+        score = next((s for s in self.scores_manager.list_scores() if s.UID == uid), None)
+        if not score:
+            messagebox.showerror("Error", "Score not found.")
+            return
+        self.show_pdf_viewer(score)
+
+    def show_pdf_viewer(self, score):
+        """
+        Show a PDF viewer for the given score in the tkinter window.
+        """
+        self.master.clear_screen()
+        self.master.generate_top_bar()
+        self.master.title(f"Score: {score.name}")
+
+        if not getattr(score, 'has_pdf', False) or not getattr(score, 'pdf_data', None):
+            label = tk.Label(self.master, text="PDF unavailable", font=("Arial", 20), fg="red")
+            label.pack(pady=40)
+            back_button = tk.Button(self.master, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
+            back_button.pack(pady=10)
+            return
+
+        # Save PDF data to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+            tmp.write(score.pdf_data)
+            pdf_path = tmp.name
+
+        # Store state for navigation
+        self._pdf_doc = fitz.open(pdf_path)
+        self._pdf_page = 0
+        self._pdf_score = score
+        self._pdf_img_label = None
+        self._pdf_path = pdf_path
+
+        def show_page(page_num):
+            page = self._pdf_doc.load_page(page_num)
+            pix = page.get_pixmap()
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            img.thumbnail((900, 1200))  # Resize for display
+            tk_img = ImageTk.PhotoImage(img)
+            if self._pdf_img_label is None:
+                self._pdf_img_label = tk.Label(self.master, image=tk_img)
+                self._pdf_img_label.image = tk_img
+                self._pdf_img_label.pack(pady=10)
+            else:
+                self._pdf_img_label.configure(image=tk_img)
+                self._pdf_img_label.image = tk_img
+
+        def go_prev():
+            if self._pdf_page > 0:
+                self._pdf_page -= 1
+                show_page(self._pdf_page)
+
+        def go_next():
+            if self._pdf_page < self._pdf_doc.page_count - 1:
+                self._pdf_page += 1
+                show_page(self._pdf_page)
+
+        nav_frame = tk.Frame(self.master)
+        nav_frame.pack(pady=10)
+        prev_btn = tk.Button(nav_frame, text="←", font=("Arial", 18), command=go_prev)
+        prev_btn.pack(side='left', padx=20)
+        next_btn = tk.Button(nav_frame, text="→", font=("Arial", 18), command=go_next)
+        next_btn.pack(side='left', padx=20)
+        back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
+        back_button.pack(side='left', padx=20)
+
+        show_page(self._pdf_page)
