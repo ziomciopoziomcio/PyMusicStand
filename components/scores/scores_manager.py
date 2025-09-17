@@ -1,6 +1,6 @@
 import uuid
 import json
-from score import Score
+from components.scores.score import Score
 
 class ScoresManager:
     def __init__(self):

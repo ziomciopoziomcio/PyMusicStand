@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
+from components.practice_mode.main_gui import GuiPracticeMode
 from components.clock_controller import clock_controller
 
 
@@ -10,6 +11,7 @@ class MainScreen(tk.Tk):
         Initialize the main screen of the electronic music stand application.
         """
         super().__init__()
+        self.practice_mode_class = GuiPracticeMode(self)
         self.clock_label = None
         self.selected_mode = None
         self.title("Electronic music stand")
@@ -84,7 +86,7 @@ class MainScreen(tk.Tk):
         elif mode == 1:
             # Practice mode selected
             self.selected_mode = modes.get(mode, "Unknown")
-            GuiPracticeMode(self).change_to_practice_mode()
+            self.practice_mode_class.change_to_practice_mode()
 
     def clear_screen(self):
         """
