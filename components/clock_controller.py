@@ -25,7 +25,7 @@ class ClockController:
                 try:
                     label.config(text=f"{current_date} {current_time}")
                 except Exception:
-                    pass  # label may have been destroyed
+                    raise RuntimeError("Clock label is not available")
             time.sleep(1)
 
     def stop(self):
