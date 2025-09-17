@@ -6,7 +6,6 @@ import tkinter as tk
 def clock_controller(clock_label: tk.Label):
     """
     Update the clock label every second in a separate thread.
-    :param master: The main Tkinter window.
     :param clock_label: The label to update with the current time.
     """
 
