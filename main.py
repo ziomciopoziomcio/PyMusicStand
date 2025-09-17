@@ -73,6 +73,15 @@ class MainScreen(tk.Tk):
             self.selected_mode = modes.get(mode, "Unknown")
             GuiPracticeMode(self).change_to_practice_mode()
 
+    def clear_screen(self):
+        """
+        Clear all widgets from the master frame.
+        :param master: The master Tkinter frame to clear.
+        """
+        for widget in self.winfo_children():
+            widget.destroy()
+
+
 
 if __name__ == '__main__':
     app = MainScreen()
