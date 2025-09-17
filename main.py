@@ -28,4 +28,11 @@ class MainScreen(tk.Tk):
                              font=("Arial", 12, "bold"), bd=0, padx=10, pady=2, activebackground='#cc0000')
         close_btn.pack(side='right', padx=10, pady=2)
 
+    def quit(self):
+        """
+        Quit the application.
+        """
+        if messagebox.askokcancel("Quit", "Do you really wish to quit?"):
+            self.destroy()
+
 MainScreen()
