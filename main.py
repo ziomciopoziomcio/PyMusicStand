@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 from components.practice_mode.main_gui import GuiPracticeMode
+from components.clock_controller import clock_controller
 
 
 class MainScreen(tk.Tk):
@@ -11,6 +12,7 @@ class MainScreen(tk.Tk):
         """
         super().__init__()
         self.practice_mode_class = GuiPracticeMode(self)
+        self.clock_label = None
         self.selected_mode = None
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
@@ -20,7 +22,9 @@ class MainScreen(tk.Tk):
 
     def generate_top_bar(self):
         """
-        Generate a custom top bar with a red X button on the right.
+        Generate a custom top bar with:
+        - a red X button on the right.
+        - clock on the left.
         """
         top_bar = tk.Frame(self, bg='#f0f0f0', height=30)
         top_bar.pack(side='top', fill='x')
@@ -34,6 +38,11 @@ class MainScreen(tk.Tk):
                               font=("Arial", 12, "bold"), bd=0, padx=10, pady=2,
                               activebackground='#cc0000')
         close_btn.pack(side='right', padx=10, pady=2)
+
+        # Clock on the left
+        self.clock_label = tk.Label(top_bar, text="", bg='#f0f0f0', font=("Arial", 12))
+        self.clock_label.pack(side='left', padx=10)
+        clock_controller(self.clock_label)
 
     def quit(self):
         """
@@ -55,7 +64,8 @@ class MainScreen(tk.Tk):
                                 command=lambda: self.select_mode(0))
         concert_btn.grid(row=0, column=0, padx=20, pady=20)
 
-        practice_btn = tk.Button(mode_frame, text="Practice", font=("Arial", 24), width=15, height=3,
+        practice_btn = tk.Button(mode_frame, text="Practice", font=("Arial", 24), width=15,
+                                 height=3,
                                  command=lambda: self.select_mode(1))
         practice_btn.grid(row=0, column=1, padx=20, pady=20)
 
@@ -71,20 +81,19 @@ class MainScreen(tk.Tk):
         if mode == 0:
             # Concert mode selected
             self.selected_mode = modes.get(mode, "Unknown")
-            messagebox.showinfo("Mode Selected", f"You have selected {self.selected_mode} mode.\n Currently under development.")
-        if mode == 1:
+            messagebox.showinfo("Mode Selected",
+                                f"You have selected {self.selected_mode} mode.\n Currently under development.")
+        elif mode == 1:
             # Practice mode selected
             self.selected_mode = modes.get(mode, "Unknown")
             self.practice_mode_class.change_to_practice_mode()
 
     def clear_screen(self):
         """
-        Clear all widgets from the master frame.
-        :param master: The master Tkinter frame to clear.
+        Clear all widgets from the main screen.
         """
         for widget in self.winfo_children():
             widget.destroy()
-
 
 
 if __name__ == '__main__':
