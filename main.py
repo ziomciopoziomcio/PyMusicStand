@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 
+from components.practice_mode.main_gui import GuiPracticeMode
+
 
 class MainScreen(tk.Tk):
     def __init__(self):
@@ -8,6 +10,7 @@ class MainScreen(tk.Tk):
         Initialize the main screen of the electronic music stand application.
         """
         super().__init__()
+        GuiPracticeMode(self)
         self.selected_mode = None
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
