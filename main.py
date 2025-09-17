@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 from components.practice_mode.main_gui import GuiPracticeMode
-from components.clock_controller import clock_controller
+from components.clock_controller import ClockController
 
 
 class MainScreen(tk.Tk):
@@ -16,6 +16,7 @@ class MainScreen(tk.Tk):
         self.selected_mode = None
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
+        self._clock_controller = ClockController(lambda: self.clock_label)
         self.generate_top_bar()
         self.generate_mode_selection()
         self.mainloop()
@@ -42,7 +43,8 @@ class MainScreen(tk.Tk):
         # Clock on the left
         self.clock_label = tk.Label(top_bar, text="", bg='#f0f0f0', font=("Arial", 12))
         self.clock_label.pack(side='left', padx=10)
-        clock_controller(self.clock_label)
+
+        self._clock_controller.set_label()
 
     def quit(self):
         """
