@@ -6,6 +6,9 @@ from tkinter import messagebox
 
 class MainScreen(tk.Tk):
     def __init__(self):
+        """
+        Initialize the main screen of the electronic music stand application.
+        """
         super().__init__()
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
