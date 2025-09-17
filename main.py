@@ -40,7 +40,7 @@ class MainScreen(tk.Tk):
         # Clock on the left
         self.clock_label = tk.Label(top_bar, text="", bg='#f0f0f0', font=("Arial", 12))
         self.clock_label.pack(side='left', padx=10)
-        clock_controller(self, self.clock_label)
+        clock_controller(self.clock_label)
 
     def quit(self):
         """
