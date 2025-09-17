@@ -76,8 +76,7 @@ class MainScreen(tk.Tk):
 
     def clear_screen(self):
         """
-        Clear all widgets from the master frame.
-        :param master: The master Tkinter frame to clear.
+        Clear all widgets from the main screen.
         """
         for widget in self.winfo_children():
             widget.destroy()
