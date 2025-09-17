@@ -10,6 +10,9 @@ def clock_controller(clock_label: tk.Label):
     """
 
     def update_clock():
+        """
+        Update the clock label every second.
+        """
         while True:
             current_time = time.strftime("%H:%M:%S")
             current_date = time.strftime("%d.%m.%Y")
