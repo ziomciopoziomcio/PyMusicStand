@@ -69,7 +69,7 @@ class MainScreen(tk.Tk):
             # Concert mode selected
             self.selected_mode = modes.get(mode, "Unknown")
             messagebox.showinfo("Mode Selected", f"You have selected {self.selected_mode} mode.\n Currently under development.")
-        if mode == 1:
+        elif mode == 1:
             # Practice mode selected
             self.selected_mode = modes.get(mode, "Unknown")
             GuiPracticeMode(self).change_to_practice_mode()
