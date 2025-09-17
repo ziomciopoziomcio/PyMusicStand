@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
+
 class MainScreen(tk.Tk):
     def __init__(self):
         """
@@ -25,7 +26,8 @@ class MainScreen(tk.Tk):
 
         # Red X button on the right
         close_btn = tk.Button(top_bar, text="X", command=self.quit, bg='red', fg='white',
-                             font=("Arial", 12, "bold"), bd=0, padx=10, pady=2, activebackground='#cc0000')
+                              font=("Arial", 12, "bold"), bd=0, padx=10, pady=2,
+                              activebackground='#cc0000')
         close_btn.pack(side='right', padx=10, pady=2)
 
     def quit(self):
@@ -34,6 +36,7 @@ class MainScreen(tk.Tk):
         """
         if messagebox.askokcancel("Quit", "Do you really wish to quit?"):
             self.destroy()
+
 
 if __name__ == '__main__':
     app = MainScreen()
