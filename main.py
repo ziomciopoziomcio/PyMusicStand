@@ -8,6 +8,7 @@ class MainScreen(tk.Tk):
         Initialize the main screen of the electronic music stand application.
         """
         super().__init__()
+        self.selected_mode = None
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
         self.generate_top_bar()
