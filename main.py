@@ -20,7 +20,9 @@ class MainScreen(tk.Tk):
 
     def generate_top_bar(self):
         """
-        Generate a custom top bar with a red X button on the right.
+        Generate a custom top bar with:
+        - a red X button on the right.
+        - clock on the left.
         """
         top_bar = tk.Frame(self, bg='#f0f0f0', height=30)
         top_bar.pack(side='top', fill='x')
