@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 
+from components.clock_controler import clock_controller
+
 
 class MainScreen(tk.Tk):
     def __init__(self):
@@ -8,6 +10,7 @@ class MainScreen(tk.Tk):
         Initialize the main screen of the electronic music stand application.
         """
         super().__init__()
+        self.clock_label = None
         self.selected_mode = None
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
@@ -31,6 +34,13 @@ class MainScreen(tk.Tk):
                               font=("Arial", 12, "bold"), bd=0, padx=10, pady=2,
                               activebackground='#cc0000')
         close_btn.pack(side='right', padx=10, pady=2)
+        
+        # Clock on the left
+        self.clock_label = tk.Label(top_bar, text="", bg='#f0f0f0', font=("Arial", 12))
+        self.clock_label.pack(side='left', padx=10)
+        clock_controller(self, self.clock_label)
+
+        
 
     def quit(self):
         """
