@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
-from components.clock_controler import clock_controller
+from components.clock_controller import clock_controller
 
 
 class MainScreen(tk.Tk):
