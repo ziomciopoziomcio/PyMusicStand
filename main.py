@@ -10,7 +10,7 @@ class MainScreen(tk.Tk):
         Initialize the main screen of the electronic music stand application.
         """
         super().__init__()
-        GuiPracticeMode(self)
+        self.practice_mode_class = GuiPracticeMode(self)
         self.selected_mode = None
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
@@ -75,7 +75,7 @@ class MainScreen(tk.Tk):
         if mode == 1:
             # Practice mode selected
             self.selected_mode = modes.get(mode, "Unknown")
-            GuiPracticeMode(self).change_to_practice_mode()
+            self.practice_mode_class.change_to_practice_mode()
 
     def clear_screen(self):
         """
