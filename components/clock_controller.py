@@ -17,3 +17,4 @@ def clock_controller(clock_label: tk.Label):
             time.sleep(1)
 
     threading.Thread(target=update_clock, daemon=True).start()
+    
