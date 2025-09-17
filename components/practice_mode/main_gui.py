@@ -50,7 +50,7 @@ class GuiPracticeMode():
         add_button = tk.Button(self.master, text="Add Score", font=("Arial", 14), command=self.add_score)
         add_button.pack(pady=5)
 
-        remove_button = tk.Button(self.master, text="Remove Score", font=("Arial", 14))
+        remove_button = tk.Button(self.master, text="Remove Score", font=("Arial", 14), command=self.remove_score)
         remove_button.pack(pady=5)
 
     def add_score(self):
@@ -75,7 +75,6 @@ class GuiPracticeMode():
 
         # PDF selection variables and widgets
         pdf_path_var = tk.StringVar()
-        pdf_data = None
 
         def choose_pdf():
             path = filedialog.askopenfilename(
@@ -117,3 +116,34 @@ class GuiPracticeMode():
 
         cancel_button = tk.Button(self.master, text="Cancel", font=("Arial", 14), command=self.change_to_practice_mode)
         cancel_button.pack(pady=5)
+
+    def remove_score(self):
+        """
+        Remove a score from the scores manager.
+        1. Clear the current screen.
+        2. Show a list of scores with options to select one for removal.
+        3. On selection, remove the score from the manager. (Ask for confirmation)
+        4. Return to the practice mode GUI.
+        """
+        self.master.clear_screen()
+        self.master.generate_top_bar()
+        self.master.title("Remove Score")
+
+        scores_frame = tk.Frame(self.master)
+        scores_frame.pack(pady=10, fill='both', expand=True)
+
+        scores_list = self.scores_manager.list_scores()
+        for score in scores_list:
+            def make_remove_func(s=score):
+                def remove_func():
+                    if messagebox.askyesno("Confirm", f"Are you sure you want to remove '{s.name}'?"):
+                        self.scores_manager.remove_score(s.UID)
+                        self.scores_manager.save()
+                        self.change_to_practice_mode()
+                return remove_func
+
+            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30, command=make_remove_func())
+            score_button.pack(pady=2)
+
+        back_button = tk.Button(self.master, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
+        back_button.pack(pady=5)
