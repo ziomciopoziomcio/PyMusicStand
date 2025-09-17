@@ -38,4 +38,5 @@ class MainScreen(tk.Tk):
         if messagebox.askokcancel("Quit", "Do you really wish to quit?"):
             self.destroy()
 
-MainScreen()
+if __name__ == '__main__':
+    app = MainScreen()
