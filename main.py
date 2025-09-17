@@ -1,7 +1,4 @@
 import tkinter as tk
-import json
-from tkinter import ttk
-from tkinter import filedialog
 from tkinter import messagebox
 
 class MainScreen(tk.Tk):
