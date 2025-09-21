@@ -153,7 +153,7 @@ class GuiPracticeMode():
         back_button = tk.Button(self.master, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
         back_button.pack(pady=5)
 
-    def open_score(self, uid):
+    def open_score(self, uid, last=False):
         """
         Open the score's PDF by UID, if available, in a tkinter PDF viewer.
         """
@@ -161,9 +161,9 @@ class GuiPracticeMode():
         if not score:
             messagebox.showerror("Error", "Score not found.")
             return
-        self.show_pdf_viewer(score)
+        self.show_pdf_viewer(score, uid, last=last)
 
-    def show_pdf_viewer(self, score):
+    def show_pdf_viewer(self, score, uid, last=False):
         """
         Show a PDF viewer for the given score in the tkinter window.
         """
@@ -186,6 +186,8 @@ class GuiPracticeMode():
         # Store state for navigation
         self._pdf_doc = fitz.open(pdf_path)
         self._pdf_page = 0
+        if last:
+            self._pdf_page = self._pdf_doc.page_count - 1
         self._pdf_score = score
         self._pdf_img_label = None
         self._pdf_path = pdf_path
@@ -204,23 +206,80 @@ class GuiPracticeMode():
                 self._pdf_img_label.configure(image=tk_img)
                 self._pdf_img_label.image = tk_img
 
-        def go_prev():
+        def go_prev(event=None):
             if self._pdf_page > 0:
                 self._pdf_page -= 1
                 show_page(self._pdf_page)
+            else:
+                self.open_previous_score(uid)
 
-        def go_next():
+        def go_next(event=None):
             if self._pdf_page < self._pdf_doc.page_count - 1:
                 self._pdf_page += 1
                 show_page(self._pdf_page)
+            else:
+                self.open_next_score(uid)
+
 
         nav_frame = tk.Frame(self.master)
         nav_frame.pack(pady=10)
-        prev_btn = tk.Button(nav_frame, text="←", font=("Arial", 18), command=go_prev)
+        prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18), command=go_prev)
         prev_btn.pack(side='left', padx=20)
-        next_btn = tk.Button(nav_frame, text="→", font=("Arial", 18), command=go_next)
+        next_btn = tk.Button(nav_frame, text="\u2192", font=("Arial", 18), command=go_next)
         next_btn.pack(side='left', padx=20)
         back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
         back_button.pack(side='left', padx=20)
 
+        # Bind keyboard events for page navigation
+        def bind_keys():
+            self._unbind_prev = self.master.bind(self.master.key_prev, go_prev)
+            self._unbind_next = self.master.bind(self.master.key_next, go_next)
+        def unbind_keys():
+            if hasattr(self, '_unbind_prev'):
+                self.master.unbind(self.master.key_prev, self._unbind_prev)
+            if hasattr(self, '_unbind_next'):
+                self.master.unbind(self.master.key_next, self._unbind_next)
+        bind_keys()
+
+        # Unbind keys when leaving PDF viewer
+        def back_and_unbind():
+            unbind_keys()
+            self.change_to_practice_mode()
+        back_button.config(command=back_and_unbind)
+
         show_page(self._pdf_page)
+
+    def open_next_score(self, uid):
+        """
+        Open the next score in the list after the given UID.
+        If at the end of the list, wrap around to the first score.
+        :param uid: Current score UID.
+        """
+        scores = self.scores_manager.list_scores()
+        if not scores:
+            messagebox.showinfo("Info", "No scores available.")
+            return
+        current_index = next((i for i, s in enumerate(scores) if s.UID == uid), None)
+        if current_index is None:
+            messagebox.showerror("Error", "Current score not found.")
+            return
+        next_index = (current_index + 1) % len(scores)
+        next_score = scores[next_index]
+        self.open_score(next_score.UID)
+
+    def open_previous_score(self, uid):
+        """
+        Open the previous score in the list before the given UID.
+        :param uid: Current score UID.
+        """
+        scores = self.scores_manager.list_scores()
+        if not scores:
+            messagebox.showinfo("Info", "No scores available.")
+            return
+        current_index = next((i for i, s in enumerate(scores) if s.UID == uid), None)
+        if current_index is None:
+            messagebox.showerror("Error", "Current score not found.")
+            return
+        prev_index = (current_index - 1) % len(scores)
+        prev_score = scores[prev_index]
+        self.open_score(prev_score.UID, last=True)
