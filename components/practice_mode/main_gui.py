@@ -178,6 +178,29 @@ class GuiPracticeMode():
             back_button.pack(pady=10)
             return
 
+        # Main container frame
+        container = tk.Frame(self.master)
+        container.pack(fill='both', expand=True)
+
+        # Left frame: score list
+        left_frame = tk.Frame(container, width=200, bg='#f0f0f0')
+        left_frame.pack(side='left', fill='y')
+        left_frame.pack_propagate(False)
+
+        scores_list = self.scores_manager.list_scores()
+        for s in scores_list:
+            is_selected = (s.UID == uid)
+            btn_bg = 'lightblue' if is_selected else '#f0f0f0'
+            btn_font = ("Arial", 12, "bold") if is_selected else ("Arial", 12)
+            def make_open_func(score_uid=s.UID):
+                return lambda: self.open_score(score_uid)
+            score_btn = tk.Button(left_frame, text=s.name, font=btn_font, width=20, anchor='w', bg=btn_bg, relief='flat', command=make_open_func())
+            score_btn.pack(fill='x', pady=1, padx=2)
+
+        # Right frame: PDF viewer and navigation
+        right_frame = tk.Frame(container)
+        right_frame.pack(side='left', fill='both', expand=True)
+
         # Save PDF data to a temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
             tmp.write(score.pdf_data)
@@ -195,11 +218,11 @@ class GuiPracticeMode():
         def show_page(page_num):
             page = self._pdf_doc.load_page(page_num)
             pix = page.get_pixmap()
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
             img.thumbnail((900, 1200))  # Resize for display
             tk_img = ImageTk.PhotoImage(img)
             if self._pdf_img_label is None:
-                self._pdf_img_label = tk.Label(self.master, image=tk_img)
+                self._pdf_img_label = tk.Label(right_frame, image=tk_img)
                 self._pdf_img_label.image = tk_img
                 self._pdf_img_label.pack(pady=10)
             else:
@@ -220,8 +243,7 @@ class GuiPracticeMode():
             else:
                 self.open_next_score(uid)
 
-
-        nav_frame = tk.Frame(self.master)
+        nav_frame = tk.Frame(right_frame)
         nav_frame.pack(pady=10)
         prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18), command=go_prev)
         prev_btn.pack(side='left', padx=20)
