@@ -169,6 +169,7 @@ class GuiPracticeMode():
         """
         self.master.clear_screen()
         self.master.generate_top_bar()
+        self.master.add_title_to_top_bar(score.name)
         self.master.title(f"Score: {score.name}")
 
         if not getattr(score, 'has_pdf', False) or not getattr(score, 'pdf_data', None):
