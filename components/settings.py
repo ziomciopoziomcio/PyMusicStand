@@ -1,5 +1,6 @@
-import tkinter as tk
 import json
+import tkinter as tk
+
 
 class Settings():
     def __init__(self, master):
@@ -57,6 +58,7 @@ class Settings():
         self.save_file()
         self.master.set_keys()
 
+
 class SettingsScreen(tk.Toplevel):
     def __init__(self, master, setting_handler):
         """
@@ -95,7 +97,6 @@ class SettingsScreen(tk.Toplevel):
         save_button = tk.Button(self, text="Save Settings", command=self.save_settings)
         save_button.pack(pady=20)
 
-
     def save_settings(self):
         """
         Save the settings and close the settings screen.
@@ -106,6 +107,7 @@ class SettingsScreen(tk.Toplevel):
             self.key_previous_entry.get()
         )
         self.destroy()
+
 
 if __name__ == '__main__':
     root = tk.Tk()
