@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
 
-from components.practice_mode.main_gui import GuiPracticeMode
 from components.clock_controller import ClockController
+from components.practice_mode.main_gui import GuiPracticeMode
+from components.settings import Settings
 
 
 class MainScreen(tk.Tk):
@@ -12,8 +13,12 @@ class MainScreen(tk.Tk):
         """
         super().__init__()
         self.practice_mode_class = GuiPracticeMode(self)
+        self.settings_class = Settings(self)
         self.clock_label = None
         self.selected_mode = None
+        self.key_prev = None
+        self.key_next = None
+        self.set_keys()
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
         self._clock_controller = ClockController(lambda: self.clock_label)
@@ -21,11 +26,20 @@ class MainScreen(tk.Tk):
         self.generate_mode_selection()
         self.mainloop()
 
+    def set_keys(self):
+        """
+        Set the key bindings for next and previous page.
+        """
+        self.settings_class.open_file()
+        self.key_next = self.settings_class.key_next
+        self.key_prev = self.settings_class.key_previous
+
     def generate_top_bar(self):
         """
         Generate a custom top bar with:
         - a red X button on the right.
         - clock on the left.
+        - settings button
         """
         top_bar = tk.Frame(self, bg='#f0f0f0', height=30)
         top_bar.pack(side='top', fill='x')
@@ -45,6 +59,13 @@ class MainScreen(tk.Tk):
         self.clock_label.pack(side='left', padx=10)
 
         self._clock_controller.set_label()
+
+        # Settings button
+        settings_btn = tk.Button(top_bar, text="Settings",
+                                 command=self.settings_class.open_settings,
+                                 bg='#f0f0f0', fg='black', font=("Arial", 12), bd=0, padx=10,
+                                 pady=2)
+        settings_btn.pack(side='right', padx=10, pady=2)
 
     def quit(self):
         """
