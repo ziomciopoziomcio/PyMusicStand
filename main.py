@@ -67,6 +67,14 @@ class MainScreen(tk.Tk):
                                  pady=2)
         settings_btn.pack(side='right', padx=10, pady=2)
 
+    def add_title_to_top_bar(self, title: str):
+        """
+        Add a title to the top bar.
+        :param title: Title text to display.
+        """
+        title_label = tk.Label(self, text=title, bg='#f0f0f0', font=("Arial", 16, "bold"))
+        title_label.place(x=self.winfo_screenwidth() // 2, y=5, anchor='n')
+
     def quit(self):
         """
         Quit the application.
