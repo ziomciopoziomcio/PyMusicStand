@@ -55,6 +55,7 @@ class Settings():
         self.key_next = key_next
         self.key_previous = key_previous
         self.save_file()
+        self.master.set_keys()
 
 class SettingsScreen(tk.Toplevel):
     def __init__(self, master, setting_handler):
