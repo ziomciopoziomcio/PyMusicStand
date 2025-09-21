@@ -26,6 +26,7 @@ class ClockController:
                     label.config(text=f"{self.current_date} {self.current_time}")
                 except Exception:
                     time.sleep(5)
+                    continue
             time.sleep(1)
 
     def stop(self):
