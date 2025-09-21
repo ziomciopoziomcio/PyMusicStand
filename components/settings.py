@@ -43,9 +43,11 @@ class Settings():
         except FileNotFoundError:
             with open("settings.json", "w") as f:
                 empty_data = {
-                    "key_next": None,
-                    "key_previous": None
+                    "key_next": "a",
+                    "key_previous": "d"
                 }
+                self.key_next = "a"
+                self.key_previous = "d"
                 json.dump(empty_data, f)
 
     def get_settings_from_window(self, key_next, key_previous):
