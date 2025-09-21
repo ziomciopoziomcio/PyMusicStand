@@ -39,6 +39,7 @@ class MainScreen(tk.Tk):
         Generate a custom top bar with:
         - a red X button on the right.
         - clock on the left.
+        - settings button
         """
         top_bar = tk.Frame(self, bg='#f0f0f0', height=30)
         top_bar.pack(side='top', fill='x')
@@ -58,6 +59,11 @@ class MainScreen(tk.Tk):
         self.clock_label.pack(side='left', padx=10)
 
         self._clock_controller.set_label()
+
+        # Settings button
+        settings_btn = tk.Button(top_bar, text="Settings", command=self.settings_class.open_settings,
+                                 bg='#f0f0f0', fg='black', font=("Arial", 12), bd=0, padx=10, pady=2)
+        settings_btn.pack(side='right', padx=10, pady=2)
 
     def quit(self):
         """
