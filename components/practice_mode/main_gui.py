@@ -204,23 +204,40 @@ class GuiPracticeMode():
                 self._pdf_img_label.configure(image=tk_img)
                 self._pdf_img_label.image = tk_img
 
-        def go_prev():
+        def go_prev(event=None):
             if self._pdf_page > 0:
                 self._pdf_page -= 1
                 show_page(self._pdf_page)
 
-        def go_next():
+        def go_next(event=None):
             if self._pdf_page < self._pdf_doc.page_count - 1:
                 self._pdf_page += 1
                 show_page(self._pdf_page)
 
         nav_frame = tk.Frame(self.master)
         nav_frame.pack(pady=10)
-        prev_btn = tk.Button(nav_frame, text="←", font=("Arial", 18), command=go_prev)
+        prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18), command=go_prev)
         prev_btn.pack(side='left', padx=20)
-        next_btn = tk.Button(nav_frame, text="→", font=("Arial", 18), command=go_next)
+        next_btn = tk.Button(nav_frame, text="\u2192", font=("Arial", 18), command=go_next)
         next_btn.pack(side='left', padx=20)
         back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
         back_button.pack(side='left', padx=20)
+
+        # Bind keyboard events for page navigation
+        def bind_keys():
+            self._unbind_prev = self.master.bind(self.master.key_prev, go_prev)
+            self._unbind_next = self.master.bind(self.master.key_next, go_next)
+        def unbind_keys():
+            if hasattr(self, '_unbind_prev'):
+                self.master.unbind(self.master.key_prev, self._unbind_prev)
+            if hasattr(self, '_unbind_next'):
+                self.master.unbind(self.master.key_next, self._unbind_next)
+        bind_keys()
+
+        # Unbind keys when leaving PDF viewer
+        def back_and_unbind():
+            unbind_keys()
+            self.change_to_practice_mode()
+        back_button.config(command=back_and_unbind)
 
         show_page(self._pdf_page)
