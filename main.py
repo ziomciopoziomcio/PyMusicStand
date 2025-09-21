@@ -3,6 +3,7 @@ from tkinter import messagebox
 
 from components.practice_mode.main_gui import GuiPracticeMode
 from components.clock_controller import ClockController
+from components.settings import Settings
 
 
 class MainScreen(tk.Tk):
@@ -12,14 +13,26 @@ class MainScreen(tk.Tk):
         """
         super().__init__()
         self.practice_mode_class = GuiPracticeMode(self)
+        self.settings_class = Settings(self)
         self.clock_label = None
         self.selected_mode = None
+        self.key_prev = None
+        self.key_next = None
+        self.set_keys()
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
         self._clock_controller = ClockController(lambda: self.clock_label)
         self.generate_top_bar()
         self.generate_mode_selection()
         self.mainloop()
+
+    def set_keys(self):
+        """
+        Set the key bindings for next and previous page.
+        """
+        self.settings_class.open_file()
+        self.key_next = self.settings_class.key_next
+        self.key_prev = self.settings_class.key_previous
 
     def generate_top_bar(self):
         """
