@@ -11,6 +11,7 @@ class Settings():
         self.master = master
         self.key_next = None
         self.key_previous = None
+        self.open_file()
 
     def open_settings(self):
         """
