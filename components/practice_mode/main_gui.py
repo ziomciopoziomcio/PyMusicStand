@@ -1,7 +1,8 @@
-import tkinter as tk
 import sys
-from tkinter import filedialog, messagebox
 import tempfile
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
 import pymupdf as fitz
 from PIL import Image, ImageTk
 
@@ -15,7 +16,6 @@ class GuiPracticeMode():
         self.master = master
         self.scores_manager = ScoresManager()
         self.scores_manager.load()
-
 
     def change_to_practice_mode(self):
         self.master.clear_screen()
@@ -48,14 +48,17 @@ class GuiPracticeMode():
         for score in scores_list:
             def make_open_func(uid=score.UID):
                 return lambda: self.open_score(uid)
-            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30, command=make_open_func())
+
+            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30,
+                                     command=make_open_func())
             score_button.pack(pady=2)
 
-
-        add_button = tk.Button(self.master, text="Add Score", font=("Arial", 14), command=self.add_score)
+        add_button = tk.Button(self.master, text="Add Score", font=("Arial", 14),
+                               command=self.add_score)
         add_button.pack(pady=5)
 
-        remove_button = tk.Button(self.master, text="Remove Score", font=("Arial", 14), command=self.remove_score)
+        remove_button = tk.Button(self.master, text="Remove Score", font=("Arial", 14),
+                                  command=self.remove_score)
         remove_button.pack(pady=5)
 
     def add_score(self):
@@ -93,7 +96,8 @@ class GuiPracticeMode():
                 pdf_path_var.set("")
                 pdf_label.config(text="No file selected")
 
-        pdf_button = tk.Button(form_frame, text="Choose PDF", font=("Arial", 12), command=choose_pdf)
+        pdf_button = tk.Button(form_frame, text="Choose PDF", font=("Arial", 12),
+                               command=choose_pdf)
         pdf_button.grid(row=1, column=0, padx=5, pady=5)
         pdf_label = tk.Label(form_frame, text="No file selected", font=("Arial", 10))
         pdf_label.grid(row=1, column=1, padx=5, pady=5)
@@ -119,7 +123,8 @@ class GuiPracticeMode():
         submit_button = tk.Button(self.master, text="Submit", font=("Arial", 14), command=submit)
         submit_button.pack(pady=10)
 
-        cancel_button = tk.Button(self.master, text="Cancel", font=("Arial", 14), command=self.change_to_practice_mode)
+        cancel_button = tk.Button(self.master, text="Cancel", font=("Arial", 14),
+                                  command=self.change_to_practice_mode)
         cancel_button.pack(pady=5)
 
     def remove_score(self):
@@ -141,16 +146,20 @@ class GuiPracticeMode():
         for score in scores_list:
             def make_remove_func(s=score):
                 def remove_func():
-                    if messagebox.askyesno("Confirm", f"Are you sure you want to remove '{s.name}'?"):
+                    if messagebox.askyesno("Confirm",
+                                           f"Are you sure you want to remove '{s.name}'?"):
                         self.scores_manager.remove_score(s.UID)
                         self.scores_manager.save()
                         self.change_to_practice_mode()
+
                 return remove_func
 
-            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30, command=make_remove_func())
+            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30,
+                                     command=make_remove_func())
             score_button.pack(pady=2)
 
-        back_button = tk.Button(self.master, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
+        back_button = tk.Button(self.master, text="Back", font=("Arial", 14),
+                                command=self.change_to_practice_mode)
         back_button.pack(pady=5)
 
     def open_score(self, uid, last=False):
@@ -172,11 +181,52 @@ class GuiPracticeMode():
         self.master.add_title_to_top_bar(score.name)
         self.master.title(f"Score: {score.name}")
 
+        def go_prev(event=None):
+            if getattr(self, '_pdf_doc', None) and self._pdf_page > 0:
+                self._pdf_page -= 1
+                show_page(self._pdf_page)
+            else:
+                self.open_previous_score(uid)
+
+        def go_next(event=None):
+            if getattr(self, '_pdf_doc', None) and self._pdf_page < self._pdf_doc.page_count - 1:
+                self._pdf_page += 1
+                show_page(self._pdf_page)
+            else:
+                self.open_next_score(uid)
+
+        def bind_keys():
+            self._unbind_prev = self.master.bind(self.master.key_prev, go_prev)
+            self._unbind_next = self.master.bind(self.master.key_next, go_next)
+
+        def unbind_keys():
+            if hasattr(self, '_unbind_prev'):
+                self.master.unbind(self.master.key_prev, self._unbind_prev)
+            if hasattr(self, '_unbind_next'):
+                self.master.unbind(self.master.key_next, self._unbind_next)
+
+        # Always bind keys, even if no PDF
+        bind_keys()
+
+        # Unbind keys when leaving PDF viewer
+        def back_and_unbind():
+            unbind_keys()
+            self.change_to_practice_mode()
+
         if not getattr(score, 'has_pdf', False) or not getattr(score, 'pdf_data', None):
             label = tk.Label(self.master, text="PDF unavailable", font=("Arial", 20), fg="red")
             label.pack(pady=40)
-            back_button = tk.Button(self.master, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
-            back_button.pack(pady=10)
+            nav_frame = tk.Frame(self.master)
+            nav_frame.pack(pady=10)
+            prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18),
+                                 command=lambda: self.open_previous_score(uid))
+            prev_btn.pack(side='left', padx=20)
+            next_btn = tk.Button(nav_frame, text="\u2192", font=("Arial", 18),
+                                 command=lambda: self.open_next_score(uid))
+            next_btn.pack(side='left', padx=20)
+            back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14),
+                                    command=back_and_unbind)
+            back_button.pack(side='left', padx=20)
             return
 
         # Main container frame
@@ -193,9 +243,12 @@ class GuiPracticeMode():
             is_selected = (s.UID == uid)
             btn_bg = 'lightblue' if is_selected else '#f0f0f0'
             btn_font = ("Arial", 12, "bold") if is_selected else ("Arial", 12)
+
             def make_open_func(score_uid=s.UID):
                 return lambda: self.open_score(score_uid)
-            score_btn = tk.Button(left_frame, text=s.name, font=btn_font, width=20, anchor='w', bg=btn_bg, relief='flat', command=make_open_func())
+
+            score_btn = tk.Button(left_frame, text=s.name, font=btn_font, width=20, anchor='w',
+                                  bg=btn_bg, relief='flat', command=make_open_func())
             score_btn.pack(fill='x', pady=1, padx=2)
 
         # Right frame: PDF viewer and navigation
@@ -230,45 +283,14 @@ class GuiPracticeMode():
                 self._pdf_img_label.configure(image=tk_img)
                 self._pdf_img_label.image = tk_img
 
-        def go_prev(event=None):
-            if self._pdf_page > 0:
-                self._pdf_page -= 1
-                show_page(self._pdf_page)
-            else:
-                self.open_previous_score(uid)
-
-        def go_next(event=None):
-            if self._pdf_page < self._pdf_doc.page_count - 1:
-                self._pdf_page += 1
-                show_page(self._pdf_page)
-            else:
-                self.open_next_score(uid)
-
         nav_frame = tk.Frame(right_frame)
         nav_frame.pack(pady=10)
         prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18), command=go_prev)
         prev_btn.pack(side='left', padx=20)
         next_btn = tk.Button(nav_frame, text="\u2192", font=("Arial", 18), command=go_next)
         next_btn.pack(side='left', padx=20)
-        back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14), command=self.change_to_practice_mode)
+        back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14), command=back_and_unbind)
         back_button.pack(side='left', padx=20)
-
-        # Bind keyboard events for page navigation
-        def bind_keys():
-            self._unbind_prev = self.master.bind(self.master.key_prev, go_prev)
-            self._unbind_next = self.master.bind(self.master.key_next, go_next)
-        def unbind_keys():
-            if hasattr(self, '_unbind_prev'):
-                self.master.unbind(self.master.key_prev, self._unbind_prev)
-            if hasattr(self, '_unbind_next'):
-                self.master.unbind(self.master.key_next, self._unbind_next)
-        bind_keys()
-
-        # Unbind keys when leaving PDF viewer
-        def back_and_unbind():
-            unbind_keys()
-            self.change_to_practice_mode()
-        back_button.config(command=back_and_unbind)
 
         show_page(self._pdf_page)
 
