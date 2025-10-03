@@ -41,15 +41,26 @@ class GuiPracticeMode():
         search_button = tk.Button(search_frame, text="Search", font=("Arial", 14))
         search_button.pack(side='left', padx=5)
 
-        scores_frame = tk.Frame(self.master)
-        scores_frame.pack(pady=10, fill='both', expand=True)
+        # Scrollable scores list
+        scores_frame_container = tk.Frame(self.master)
+        scores_frame_container.pack(pady=10, fill='both', expand=True)
+        scores_canvas = tk.Canvas(scores_frame_container, height=300)
+        scores_canvas.pack(side='left', fill='both', expand=True)
+        scrollbar = tk.Scrollbar(scores_frame_container, orient='vertical', command=scores_canvas.yview)
+        scrollbar.pack(side='right', fill='y')
+        scores_canvas.configure(yscrollcommand=scrollbar.set)
+        scores_inner_frame = tk.Frame(scores_canvas)
+        scores_canvas.create_window((0, 0), window=scores_inner_frame, anchor='nw')
+
+        def on_frame_configure(event):
+            scores_canvas.configure(scrollregion=scores_canvas.bbox('all'))
+        scores_inner_frame.bind('<Configure>', on_frame_configure)
 
         scores_list = self.scores_manager.list_scores()
         for score in scores_list:
             def make_open_func(uid=score.UID):
                 return lambda: self.open_score(uid)
-
-            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30,
+            score_button = tk.Button(scores_inner_frame, text=score.name, font=("Arial", 12), width=30,
                                      command=make_open_func())
             score_button.pack(pady=2)
 
@@ -233,21 +244,29 @@ class GuiPracticeMode():
         container = tk.Frame(self.master)
         container.pack(fill='both', expand=True)
 
-        # Left frame: score list
-        left_frame = tk.Frame(container, width=200, bg='#f0f0f0')
-        left_frame.pack(side='left', fill='y')
-        left_frame.pack_propagate(False)
+        # Left frame: scrollable score list
+        left_frame_container = tk.Frame(container, width=200, bg='#f0f0f0')
+        left_frame_container.pack(side='left', fill='y')
+        left_frame_container.pack_propagate(False)
+        left_canvas = tk.Canvas(left_frame_container, width=200, bg='#f0f0f0')
+        left_canvas.pack(side='left', fill='y', expand=True)
+        left_scrollbar = tk.Scrollbar(left_frame_container, orient='vertical', command=left_canvas.yview)
+        left_scrollbar.pack(side='right', fill='y')
+        left_canvas.configure(yscrollcommand=left_scrollbar.set)
+        left_inner_frame = tk.Frame(left_canvas, bg='#f0f0f0')
+        left_canvas.create_window((0, 0), window=left_inner_frame, anchor='nw')
+        def on_left_frame_configure(event):
+            left_canvas.configure(scrollregion=left_canvas.bbox('all'))
+        left_inner_frame.bind('<Configure>', on_left_frame_configure)
 
         scores_list = self.scores_manager.list_scores()
         for s in scores_list:
             is_selected = (s.UID == uid)
             btn_bg = 'lightblue' if is_selected else '#f0f0f0'
             btn_font = ("Arial", 12, "bold") if is_selected else ("Arial", 12)
-
             def make_open_func(score_uid=s.UID):
                 return lambda: self.open_score(score_uid)
-
-            score_btn = tk.Button(left_frame, text=s.name, font=btn_font, width=20, anchor='w',
+            score_btn = tk.Button(left_inner_frame, text=s.name, font=btn_font, width=20, anchor='w',
                                   bg=btn_bg, relief='flat', command=make_open_func())
             score_btn.pack(fill='x', pady=1, padx=2)
 
