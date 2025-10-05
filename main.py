@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+import psutil
 
 from components.clock_controller import ClockController
 from components.practice_mode.main_gui import GuiPracticeMode
@@ -24,6 +25,7 @@ class MainScreen(tk.Tk):
         self.title("Electronic music stand")
         self.attributes('-fullscreen', True)
         self._clock_controller = ClockController(lambda: self.clock_label)
+        self.battery_label = None  # Add battery label attribute
         self.generate_top_bar()
         self.generate_mode_selection()
         self.mainloop()
@@ -68,6 +70,12 @@ class MainScreen(tk.Tk):
                                  bg='#f0f0f0', fg='black', font=("Arial", 12), bd=0, padx=10,
                                  pady=2)
         settings_btn.pack(side='right', padx=10, pady=2)
+
+        # Battery percentage label
+        self.battery_label = tk.Label(top_bar, text="", bg='#f0f0f0', font=("Arial", 12))
+        self.battery_label.pack(side='right', padx=10)
+
+        self.update_battery_status()  # Start battery status updates
 
     def add_title_to_top_bar(self, title: str):
         """
@@ -126,6 +134,24 @@ class MainScreen(tk.Tk):
         """
         for widget in self.winfo_children():
             widget.destroy()
+
+    def update_battery_status(self):
+        """
+        Update the battery percentage in the status bar.
+        """
+        try:
+            battery = psutil.sensors_battery()
+            if battery is not None:
+                percent = battery.percent
+                plugged = battery.power_plugged
+                status = f"{percent}% {'(Charging)' if plugged else ''}"
+            else:
+                status = "Battery: N/A"
+        except Exception:
+            status = "Battery: Error"
+        if self.battery_label:
+            self.battery_label.config(text=status)
+        self.after(30_000, self.update_battery_status)  # Update every 30 seconds
 
 
 if __name__ == '__main__':
