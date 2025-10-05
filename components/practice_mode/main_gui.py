@@ -56,13 +56,13 @@ class GuiPracticeMode():
             scores_canvas.configure(scrollregion=scores_canvas.bbox('all'))
         scores_inner_frame.bind('<Configure>', on_frame_configure)
 
-        # Natural scrolling (touch-like)
+        # Natural scrolling (touch-like, y axis only)
         def _on_mousewheel(event):
             scores_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         def _on_press(event):
-            scores_canvas.scan_mark(event.x, event.y)
+            scores_canvas.scan_mark(0, event.y)  # Only y axis
         def _on_drag(event):
-            scores_canvas.scan_dragto(event.x, event.y, gain=1)
+            scores_canvas.scan_dragto(0, event.y, gain=1)  # Only y axis
         scores_canvas.bind("<MouseWheel>", _on_mousewheel)
         scores_canvas.bind("<ButtonPress-1>", _on_press)
         scores_canvas.bind("<B1-Motion>", _on_drag)
@@ -182,13 +182,13 @@ class GuiPracticeMode():
             scores_canvas.configure(scrollregion=scores_canvas.bbox('all'))
         scores_inner_frame.bind('<Configure>', on_frame_configure)
 
-        # Natural scrolling (touch-like)
+        # Natural scrolling (touch-like, y axis only)
         def _on_mousewheel(event):
             scores_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         def _on_press(event):
-            scores_canvas.scan_mark(event.x, event.y)
+            scores_canvas.scan_mark(0, event.y)  # Only y axis
         def _on_drag(event):
-            scores_canvas.scan_dragto(event.x, event.y, gain=1)
+            scores_canvas.scan_dragto(0, event.y, gain=1)  # Only y axis
         scores_canvas.bind("<MouseWheel>", _on_mousewheel)
         scores_canvas.bind("<ButtonPress-1>", _on_press)
         scores_canvas.bind("<B1-Motion>", _on_drag)
@@ -297,6 +297,17 @@ class GuiPracticeMode():
         def on_left_frame_configure(event):
             left_canvas.configure(scrollregion=left_canvas.bbox('all'))
         left_inner_frame.bind('<Configure>', on_left_frame_configure)
+
+        # Natural scrolling for left score list (y axis only)
+        def _on_mousewheel(event):
+            left_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        def _on_press(event):
+            left_canvas.scan_mark(0, event.y)  # Only y axis
+        def _on_drag(event):
+            left_canvas.scan_dragto(0, event.y, gain=1)  # Only y axis
+        left_canvas.bind("<MouseWheel>", _on_mousewheel)
+        left_canvas.bind("<ButtonPress-1>", _on_press)
+        left_canvas.bind("<B1-Motion>", _on_drag)
 
         scores_list = self.scores_manager.list_scores()
         for s in scores_list:
