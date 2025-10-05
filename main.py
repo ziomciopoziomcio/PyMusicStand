@@ -3,6 +3,7 @@ from tkinter import messagebox
 
 from components.clock_controller import ClockController
 from components.practice_mode.main_gui import GuiPracticeMode
+from components.concert_mode.main_gui import GuiConcertMode
 from components.settings import Settings
 
 
@@ -13,6 +14,7 @@ class MainScreen(tk.Tk):
         """
         super().__init__()
         self.practice_mode_class = GuiPracticeMode(self)
+        self.concert_mode_class = GuiConcertMode(self)
         self.settings_class = Settings(self)
         self.clock_label = None
         self.selected_mode = None
@@ -112,8 +114,7 @@ class MainScreen(tk.Tk):
         if mode == 0:
             # Concert mode selected
             self.selected_mode = modes.get(mode, "Unknown")
-            messagebox.showinfo("Mode Selected",
-                                f"You have selected {self.selected_mode} mode.\n Currently under development.")
+            self.concert_mode_class.change_to_concert_mode()
         elif mode == 1:
             # Practice mode selected
             self.selected_mode = modes.get(mode, "Unknown")
