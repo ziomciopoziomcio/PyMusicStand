@@ -109,3 +109,21 @@ class ConcertsManager:
                 concert.program = program
             return True
         return False
+
+    def move_program_item(self, concert_uid, from_index, to_index):
+        concert = self.get_concert(concert_uid)
+        if concert:
+            return concert.move_program_item(from_index, to_index)
+        return False
+
+    def remove_program_item(self, concert_uid, index):
+        concert = self.get_concert(concert_uid)
+        if concert:
+            return concert.remove_program_item(index)
+        return False
+
+    def insert_program_item(self, concert_uid, index, score_uid):
+        concert = self.get_concert(concert_uid)
+        if concert:
+            return concert.insert_program_item(index, score_uid)
+        return False

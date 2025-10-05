@@ -35,3 +35,31 @@ class Concert:
         """
         with open(f"{self.UID}.json", "w") as f:
             f.write(self.to_json())
+
+    def move_program_item(self, from_index, to_index):
+        """
+        Move a score in the program from one position to another.
+        """
+        if from_index < 0 or from_index >= len(self.program) or to_index < 0 or to_index >= len(self.program):
+            return False
+        item = self.program.pop(from_index)
+        self.program.insert(to_index, item)
+        return True
+
+    def remove_program_item(self, index):
+        """
+        Remove a score from the program by index.
+        """
+        if 0 <= index < len(self.program):
+            self.program.pop(index)
+            return True
+        return False
+
+    def insert_program_item(self, index, score_uid):
+        """
+        Insert a score UID into the program at a specific index.
+        """
+        if 0 <= index <= len(self.program):
+            self.program.insert(index, score_uid)
+            return True
+        return False

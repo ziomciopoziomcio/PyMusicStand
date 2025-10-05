@@ -152,10 +152,25 @@ class GuiConcertMode:
         tk.Label(details_frame, text=f"Date: {concert.date}", font=("Arial", 14)).pack(anchor='w')
         tk.Label(details_frame, text=f"Location: {concert.location}", font=("Arial", 14)).pack(anchor='w')
         tk.Label(details_frame, text="Program:", font=("Arial", 14, "bold")).pack(anchor='w', pady=(10,0))
-        for uid in concert.program:
-            score = self.scores_manager.get_score(uid)
-            score_name = score.name if score else f"Unknown ({uid})"
-            tk.Label(details_frame, text=f"- {score_name}", font=("Arial", 12)).pack(anchor='w')
+
+        # Program list with order controls
+        program_frame = tk.Frame(details_frame)
+        program_frame.pack(anchor='w')
+        for idx, score_uid in enumerate(concert.program):
+            score = self.scores_manager.get_score(score_uid)
+            score_name = score.name if score else f"Unknown ({score_uid})"
+            row = tk.Frame(program_frame)
+            row.pack(fill='x', pady=1)
+            tk.Label(row, text=f"{idx+1}. {score_name}", font=("Arial", 12), width=30, anchor='w').pack(side='left')
+            up_btn = tk.Button(row, text="↑", font=("Arial", 10),
+                               command=lambda i=idx: self.move_program_item(uid, i, i-1))
+            up_btn.pack(side='left')
+            down_btn = tk.Button(row, text="↓", font=("Arial", 10),
+                                 command=lambda i=idx: self.move_program_item(uid, i, i+1))
+            down_btn.pack(side='left')
+            del_btn = tk.Button(row, text="✕", font=("Arial", 10),
+                                command=lambda i=idx: self.remove_program_item(uid, i))
+            del_btn.pack(side='left')
 
         btn_frame = tk.Frame(self.master)
         btn_frame.pack(pady=10)
@@ -171,6 +186,20 @@ class GuiConcertMode:
         back_btn = tk.Button(btn_frame, text="Back", font=("Arial", 14),
                              command=self.generate_mode_gui)
         back_btn.pack(side='left', padx=10)
+
+    def move_program_item(self, concert_uid, from_index, to_index):
+        concert = self.concerts_manager.get_concert(concert_uid)
+        if concert and 0 <= from_index < len(concert.program) and 0 <= to_index < len(concert.program):
+            self.concerts_manager.move_program_item(concert_uid, from_index, to_index)
+            self.concerts_manager.save()
+            self.view_concert_details(concert_uid)
+
+    def remove_program_item(self, concert_uid, index):
+        concert = self.concerts_manager.get_concert(concert_uid)
+        if concert and 0 <= index < len(concert.program):
+            self.concerts_manager.remove_program_item(concert_uid, index)
+            self.concerts_manager.save()
+            self.view_concert_details(concert_uid)
 
     def open_concert_viewer(self, concert, score_index=0, last=False):
         """
