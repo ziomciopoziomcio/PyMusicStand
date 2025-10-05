@@ -156,21 +156,36 @@ class GuiConcertMode:
         # Program list with order controls
         program_frame = tk.Frame(details_frame)
         program_frame.pack(anchor='w')
-        for idx, score_uid in enumerate(concert.program):
-            score = self.scores_manager.get_score(score_uid)
-            score_name = score.name if score else f"Unknown ({score_uid})"
-            row = tk.Frame(program_frame)
-            row.pack(fill='x', pady=1)
-            tk.Label(row, text=f"{idx+1}. {score_name}", font=("Arial", 12), width=30, anchor='w').pack(side='left')
-            up_btn = tk.Button(row, text="↑", font=("Arial", 10),
-                               command=lambda i=idx: self.move_program_item(uid, i, i-1))
-            up_btn.pack(side='left')
-            down_btn = tk.Button(row, text="↓", font=("Arial", 10),
-                                 command=lambda i=idx: self.move_program_item(uid, i, i+1))
-            down_btn.pack(side='left')
-            del_btn = tk.Button(row, text="✕", font=("Arial", 10),
-                                command=lambda i=idx: self.remove_program_item(uid, i))
-            del_btn.pack(side='left')
+        for idx, item in enumerate(concert.program):
+            if isinstance(item, dict) and item.get("type") == "break":
+                duration = item.get("duration", 300)
+                row = tk.Frame(program_frame)
+                row.pack(fill='x', pady=1)
+                tk.Label(row, text=f"{idx+1}. --- Break ({duration//60} min) ---", font=("Arial", 12, "italic"), width=30, anchor='w', fg="gray").pack(side='left')
+                up_btn = tk.Button(row, text="↑", font=("Arial", 10),
+                                   command=lambda i=idx: self.move_program_item(uid, i, i-1))
+                up_btn.pack(side='left')
+                down_btn = tk.Button(row, text="↓", font=("Arial", 10),
+                                     command=lambda i=idx: self.move_program_item(uid, i, i+1))
+                down_btn.pack(side='left')
+                del_btn = tk.Button(row, text="✕", font=("Arial", 10),
+                                    command=lambda i=idx: self.remove_program_item(uid, i))
+                del_btn.pack(side='left')
+            else:
+                score = self.scores_manager.get_score(item)
+                score_name = score.name if score else f"Unknown ({item})"
+                row = tk.Frame(program_frame)
+                row.pack(fill='x', pady=1)
+                tk.Label(row, text=f"{idx+1}. {score_name}", font=("Arial", 12), width=30, anchor='w').pack(side='left')
+                up_btn = tk.Button(row, text="↑", font=("Arial", 10),
+                                   command=lambda i=idx: self.move_program_item(uid, i, i-1))
+                up_btn.pack(side='left')
+                down_btn = tk.Button(row, text="↓", font=("Arial", 10),
+                                     command=lambda i=idx: self.move_program_item(uid, i, i+1))
+                down_btn.pack(side='left')
+                del_btn = tk.Button(row, text="✕", font=("Arial", 10),
+                                    command=lambda i=idx: self.remove_program_item(uid, i))
+                del_btn.pack(side='left')
 
         btn_frame = tk.Frame(self.master)
         btn_frame.pack(pady=10)
@@ -211,10 +226,18 @@ class GuiConcertMode:
         self.master.add_title_to_top_bar(concert.name)
         self.master.title(f"Concert: {concert.name}")
 
-        program_scores = [self.scores_manager.get_score(uid) for uid in concert.program]
-        program_scores = [s for s in program_scores if s is not None]
+        # Filter program items for display
+        program_items = concert.program
+        display_items = []
+        for item in program_items:
+            if isinstance(item, dict) and item.get("type") == "break":
+                display_items.append(item)
+            else:
+                score = self.scores_manager.get_score(item)
+                if score:
+                    display_items.append(score)
 
-        if not program_scores:
+        if not display_items:
             label = tk.Label(self.master, text="No scores in concert program.", font=("Arial", 20), fg="red")
             label.pack(pady=40)
             back_button = tk.Button(self.master, text="Back", font=("Arial", 14),
@@ -227,14 +250,14 @@ class GuiConcertMode:
                 self._pdf_page -= 1
                 show_page(self._pdf_page)
             else:
-                self.open_concert_viewer(concert, (self._score_index - 1) % len(program_scores), last=True)
+                self.open_concert_viewer(concert, (self._score_index - 1) % len(display_items), last=True)
 
         def go_next(event=None):
             if getattr(self, '_pdf_doc', None) and self._pdf_page < self._pdf_doc.page_count - 1:
                 self._pdf_page += 1
                 show_page(self._pdf_page)
             else:
-                self.open_concert_viewer(concert, (self._score_index + 1) % len(program_scores))
+                self.open_concert_viewer(concert, (self._score_index + 1) % len(display_items))
 
         def bind_keys():
             self._unbind_prev = self.master.bind(self.master.key_prev, go_prev)
@@ -252,58 +275,50 @@ class GuiConcertMode:
             unbind_keys()
             self.view_concert_details(concert.UID)
 
-        score = program_scores[score_index]
+        item = display_items[score_index]
         self._score_index = score_index
 
-        if not getattr(score, 'has_pdf', False) or not getattr(score, 'pdf_data', None):
-            label = tk.Label(self.master, text="PDF unavailable", font=("Arial", 20), fg="red")
-            label.pack(pady=40)
+        if isinstance(item, dict) and item.get("type") == "break":
+            # Show break page with timer
+            duration = item.get("duration", 300)
+            label = tk.Label(self.master, text=f"Break\n{duration//60}:{duration%60:02d} min", font=("Arial", 32), fg="gray")
+            label.pack(pady=80)
+            timer_label = tk.Label(self.master, text="", font=("Arial", 24), fg="blue")
+            timer_label.pack(pady=10)
+            running = [True]
+            def update_timer(secs_left):
+                if not running[0]:
+                    return
+                mins = secs_left // 60
+                secs = secs_left % 60
+                timer_label.config(text=f"{mins}:{secs:02d}")
+                if secs_left > 0:
+                    self.master.after(1000, lambda: update_timer(secs_left - 1))
+                else:
+                    timer_label.config(text="Break finished!")
+            update_timer(duration)
             nav_frame = tk.Frame(self.master)
             nav_frame.pack(pady=10)
             prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18),
-                                 command=lambda: self.open_concert_viewer(concert, (score_index - 1) % len(program_scores), last=True))
+                                 command=lambda: [running.__setitem__(0, False), self.open_concert_viewer(concert, (score_index - 1) % len(display_items), last=True)])
             prev_btn.pack(side='left', padx=20)
             next_btn = tk.Button(nav_frame, text="\u2192", font=("Arial", 18),
-                                 command=lambda: self.open_concert_viewer(concert, (score_index + 1) % len(program_scores)))
+                                 command=lambda: [running.__setitem__(0, False), self.open_concert_viewer(concert, (score_index + 1) % len(display_items))])
             next_btn.pack(side='left', padx=20)
             back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14),
-                                    command=back_and_unbind)
+                                    command=lambda: [running.__setitem__(0, False), self.view_concert_details(concert.UID)])
             back_button.pack(side='left', padx=20)
             return
 
-        container = tk.Frame(self.master)
-        container.pack(fill='both', expand=True)
-
-        # Left frame: program score list
-        left_frame = tk.Frame(container, width=200, bg='#f0f0f0')
-        left_frame.pack(side='left', fill='y')
-        left_frame.pack_propagate(False)
-
-        for i, s in enumerate(program_scores):
-            is_selected = (i == score_index)
-            btn_bg = 'lightblue' if is_selected else '#f0f0f0'
-            btn_font = ("Arial", 12, "bold") if is_selected else ("Arial", 12)
-
-            def make_open_func(idx=i):
-                return lambda: self.open_concert_viewer(concert, idx)
-
-            score_btn = tk.Button(left_frame, text=s.name, font=btn_font, width=20, anchor='w',
-                                  bg=btn_bg, relief='flat', command=make_open_func())
-            score_btn.pack(fill='x', pady=1, padx=2)
-
-        # Right frame: PDF viewer and navigation
-        right_frame = tk.Frame(container)
-        right_frame.pack(side='left', fill='both', expand=True)
-
         with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
-            tmp.write(score.pdf_data)
+            tmp.write(item.pdf_data)
             pdf_path = tmp.name
 
         self._pdf_doc = fitz.open(pdf_path)
         self._pdf_page = 0
         if last:
             self._pdf_page = self._pdf_doc.page_count - 1
-        self._pdf_score = score
+        self._pdf_score = item
         self._pdf_img_label = None
         self._pdf_path = pdf_path
 
@@ -320,6 +335,31 @@ class GuiConcertMode:
             else:
                 self._pdf_img_label.configure(image=tk_img)
                 self._pdf_img_label.image = tk_img
+
+        container = tk.Frame(self.master)
+        container.pack(fill='both', expand=True)
+
+        # Left frame: program score list
+        left_frame = tk.Frame(container, width=200, bg='#f0f0f0')
+        left_frame.pack(side='left', fill='y')
+        left_frame.pack_propagate(False)
+        for i, s in enumerate(display_items):
+            is_selected = (i == score_index)
+            btn_bg = 'lightblue' if is_selected else '#f0f0f0'
+            btn_font = ("Arial", 12, "bold") if is_selected else ("Arial", 12)
+            if isinstance(s, dict) and s.get("type") == "break":
+                btn_text = f"--- Break ({s.get('duration',300)//60} min) ---"
+            else:
+                btn_text = s.name
+            def make_open_func(idx=i):
+                return lambda: self.open_concert_viewer(concert, idx)
+            score_btn = tk.Button(left_frame, text=btn_text, font=btn_font, width=20, anchor='w',
+                                  bg=btn_bg, relief='flat', command=make_open_func())
+            score_btn.pack(fill='x', pady=1, padx=2)
+
+        # Right frame: PDF viewer and navigation
+        right_frame = tk.Frame(container)
+        right_frame.pack(side='left', fill='both', expand=True)
 
         nav_frame = tk.Frame(right_frame)
         nav_frame.pack(pady=10)
@@ -362,13 +402,13 @@ class GuiConcertMode:
         location_entry.insert(0, concert.location)
         location_entry.grid(row=2, column=1, padx=5, pady=5)
 
-        program_label = tk.Label(form_frame, text="Program (select scores):", font=("Arial", 14))
+        # Scrollable scores list for selection
+        program_label = tk.Label(form_frame, text="Available scores:", font=("Arial", 14))
         program_label.grid(row=3, column=0, padx=5, pady=5)
 
-        # Scrollable scores list for program selection
         program_container = tk.Frame(form_frame)
         program_container.grid(row=4, column=0, columnspan=2, sticky='nsew')
-        program_canvas = tk.Canvas(program_container, height=250)
+        program_canvas = tk.Canvas(program_container, height=150)
         program_scrollbar = tk.Scrollbar(program_container, orient="vertical", command=program_canvas.yview)
         program_scores_frame = tk.Frame(program_canvas)
 
@@ -385,22 +425,98 @@ class GuiConcertMode:
         program_scrollbar.pack(side="right", fill="y")
 
         scores = self.scores_manager.list_scores()
-        program_vars = []
+        score_vars = []
         for i, score in enumerate(scores):
-            var = tk.IntVar(value=1 if score.UID in concert.program else 0)
+            var = tk.IntVar(value=score.UID in [item for item in concert.program if not isinstance(item, dict)])
             cb = tk.Checkbutton(program_scores_frame, text=score.name, variable=var, font=("Arial", 12))
             cb.pack(anchor='w')
-            program_vars.append((var, score.UID))
+            score_vars.append((var, score.UID))
+
+        # Program order editor (scrollable)
+        order_label = tk.Label(form_frame, text="Program order (songs & breaks):", font=("Arial", 14))
+        order_label.grid(row=5, column=0, columnspan=2, pady=(10,0))
+
+        order_container = tk.Frame(form_frame)
+        order_container.grid(row=6, column=0, columnspan=2, sticky='nsew')
+        order_canvas = tk.Canvas(order_container, height=180)
+        order_scrollbar = tk.Scrollbar(order_container, orient="vertical", command=order_canvas.yview)
+        order_frame = tk.Frame(order_canvas)
+
+        order_frame.bind(
+            "<Configure>",
+            lambda e: order_canvas.configure(
+                scrollregion=order_canvas.bbox("all")
+            )
+        )
+        order_canvas.create_window((0, 0), window=order_frame, anchor="nw")
+        order_canvas.configure(yscrollcommand=order_scrollbar.set)
+
+        order_canvas.pack(side="left", fill="both", expand=True)
+        order_scrollbar.pack(side="right", fill="y")
+
+        # Show current program order (songs and breaks)
+        for idx, item in enumerate(concert.program):
+            row = tk.Frame(order_frame)
+            row.pack(fill='x', pady=1)
+            if isinstance(item, dict) and item.get("type") == "break":
+                duration = item.get("duration", 300)
+                tk.Label(row, text=f"{idx+1}. --- Break ({duration//60} min) ---", font=("Arial", 12, "italic"), width=30, anchor='w', fg="gray").pack(side='left')
+            else:
+                score = self.scores_manager.get_score(item)
+                score_name = score.name if score else f"Unknown ({item})"
+                tk.Label(row, text=f"{idx+1}. {score_name}", font=("Arial", 12), width=30, anchor='w').pack(side='left')
+            up_btn = tk.Button(row, text="↑", font=("Arial", 10),
+                               command=lambda i=idx: self.move_program_item(uid, i, i-1))
+            up_btn.pack(side='left')
+            down_btn = tk.Button(row, text="↓", font=("Arial", 10),
+                                 command=lambda i=idx: self.move_program_item(uid, i, i+1))
+            down_btn.pack(side='left')
+            del_btn = tk.Button(row, text="✕", font=("Arial", 10),
+                                command=lambda i=idx: self.remove_program_item(uid, i))
+            del_btn.pack(side='left')
+
+        # Add break controls
+        break_control_frame = tk.Frame(form_frame)
+        break_control_frame.grid(row=7, column=0, columnspan=2, pady=10)
+        tk.Label(break_control_frame, text="Add Break:", font=("Arial", 12)).pack(side='left')
+        break_duration_entry = tk.Entry(break_control_frame, font=("Arial", 12), width=5)
+        break_duration_entry.insert(0, "5")  # default 5 min
+        break_duration_entry.pack(side='left')
+        tk.Label(break_control_frame, text="min at position", font=("Arial", 12)).pack(side='left')
+        break_pos_entry = tk.Entry(break_control_frame, font=("Arial", 12), width=3)
+        break_pos_entry.pack(side='left')
+        def add_break_btn_action():
+            try:
+                pos = int(break_pos_entry.get())
+                duration = int(break_duration_entry.get()) * 60
+                self.concerts_manager.add_break(uid, pos, duration)
+                self.concerts_manager.save()
+                self.edit_concert(uid)
+            except Exception:
+                messagebox.showerror("Error", "Invalid break position or duration.")
+        add_break_btn = tk.Button(break_control_frame, text="Add", font=("Arial", 12), command=add_break_btn_action)
+        add_break_btn.pack(side='left', padx=5)
 
         def submit():
             name = name_entry.get()
             date = date_entry.get()
             location = location_entry.get()
-            program = [uid for var, uid in program_vars if var.get()]
+            # Only keep checked scores, preserve breaks
+            checked_uids = [uid for var, uid in score_vars if var.get()]
+            new_program = []
+            for item in concert.program:
+                if isinstance(item, dict) and item.get("type") == "break":
+                    new_program.append(item)
+                elif item in checked_uids:
+                    new_program.append(item)
+            # Add any newly checked scores not already in program
+            for uid in checked_uids:
+                if uid not in new_program:
+                    new_program.append(uid)
             if not name or not date or not location:
                 messagebox.showerror("Error", "Please fill all fields.")
                 return
-            self.concerts_manager.update_concert(uid, name, date, location, program)
+            self.concerts_manager.update_concert(uid, name, date, location, new_program)
             self.concerts_manager.save()
             self.view_concert_details(uid)
 

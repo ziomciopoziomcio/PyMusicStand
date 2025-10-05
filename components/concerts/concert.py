@@ -55,11 +55,18 @@ class Concert:
             return True
         return False
 
-    def insert_program_item(self, index, score_uid):
+    def insert_program_item(self, index, score_uid_or_break):
         """
-        Insert a score UID into the program at a specific index.
+        Insert a score UID or break dict into the program at a specific index.
         """
         if 0 <= index <= len(self.program):
-            self.program.insert(index, score_uid)
+            self.program.insert(index, score_uid_or_break)
             return True
         return False
+
+    def add_break(self, index, duration=300):
+        """
+        Add a break at the specified index with a duration in seconds.
+        """
+        break_item = {"type": "break", "duration": duration}
+        return self.insert_program_item(index, break_item)

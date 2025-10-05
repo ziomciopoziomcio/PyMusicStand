@@ -122,8 +122,14 @@ class ConcertsManager:
             return concert.remove_program_item(index)
         return False
 
-    def insert_program_item(self, concert_uid, index, score_uid):
+    def insert_program_item(self, concert_uid, index, score_uid_or_break):
         concert = self.get_concert(concert_uid)
         if concert:
-            return concert.insert_program_item(index, score_uid)
+            return concert.insert_program_item(index, score_uid_or_break)
+        return False
+
+    def add_break(self, concert_uid, index, duration=300):
+        concert = self.get_concert(concert_uid)
+        if concert:
+            return concert.add_break(index, duration)
         return False
