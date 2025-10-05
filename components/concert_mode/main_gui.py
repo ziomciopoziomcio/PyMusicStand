@@ -159,6 +159,9 @@ class GuiConcertMode:
 
         btn_frame = tk.Frame(self.master)
         btn_frame.pack(pady=10)
+        open_btn = tk.Button(btn_frame, text="Open Concert", font=("Arial", 14),
+                             command=lambda: self.open_concert_viewer(concert))
+        open_btn.pack(side='left', padx=10)
         edit_btn = tk.Button(btn_frame, text="Edit", font=("Arial", 14),
                              command=lambda: self.edit_concert(uid))
         edit_btn.pack(side='left', padx=10)
@@ -168,6 +171,137 @@ class GuiConcertMode:
         back_btn = tk.Button(btn_frame, text="Back", font=("Arial", 14),
                              command=self.generate_mode_gui)
         back_btn.pack(side='left', padx=10)
+
+    def open_concert_viewer(self, concert, score_index=0, last=False):
+        """
+        Open the concert program in a PDF viewer, similar to practice mode.
+        Only scores from the concert program are shown.
+        """
+        self.master.clear_screen()
+        self.master.generate_top_bar()
+        self.master.add_title_to_top_bar(concert.name)
+        self.master.title(f"Concert: {concert.name}")
+
+        program_scores = [self.scores_manager.get_score(uid) for uid in concert.program]
+        program_scores = [s for s in program_scores if s is not None]
+
+        if not program_scores:
+            label = tk.Label(self.master, text="No scores in concert program.", font=("Arial", 20), fg="red")
+            label.pack(pady=40)
+            back_button = tk.Button(self.master, text="Back", font=("Arial", 14),
+                                    command=lambda: self.view_concert_details(concert.UID))
+            back_button.pack(pady=20)
+            return
+
+        def go_prev(event=None):
+            if getattr(self, '_pdf_doc', None) and self._pdf_page > 0:
+                self._pdf_page -= 1
+                show_page(self._pdf_page)
+            else:
+                self.open_concert_viewer(concert, (self._score_index - 1) % len(program_scores), last=True)
+
+        def go_next(event=None):
+            if getattr(self, '_pdf_doc', None) and self._pdf_page < self._pdf_doc.page_count - 1:
+                self._pdf_page += 1
+                show_page(self._pdf_page)
+            else:
+                self.open_concert_viewer(concert, (self._score_index + 1) % len(program_scores))
+
+        def bind_keys():
+            self._unbind_prev = self.master.bind(self.master.key_prev, go_prev)
+            self._unbind_next = self.master.bind(self.master.key_next, go_next)
+
+        def unbind_keys():
+            if hasattr(self, '_unbind_prev'):
+                self.master.unbind(self.master.key_prev, self._unbind_prev)
+            if hasattr(self, '_unbind_next'):
+                self.master.unbind(self.master.key_next, self._unbind_next)
+
+        bind_keys()
+
+        def back_and_unbind():
+            unbind_keys()
+            self.view_concert_details(concert.UID)
+
+        score = program_scores[score_index]
+        self._score_index = score_index
+
+        if not getattr(score, 'has_pdf', False) or not getattr(score, 'pdf_data', None):
+            label = tk.Label(self.master, text="PDF unavailable", font=("Arial", 20), fg="red")
+            label.pack(pady=40)
+            nav_frame = tk.Frame(self.master)
+            nav_frame.pack(pady=10)
+            prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18),
+                                 command=lambda: self.open_concert_viewer(concert, (score_index - 1) % len(program_scores), last=True))
+            prev_btn.pack(side='left', padx=20)
+            next_btn = tk.Button(nav_frame, text="\u2192", font=("Arial", 18),
+                                 command=lambda: self.open_concert_viewer(concert, (score_index + 1) % len(program_scores)))
+            next_btn.pack(side='left', padx=20)
+            back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14),
+                                    command=back_and_unbind)
+            back_button.pack(side='left', padx=20)
+            return
+
+        container = tk.Frame(self.master)
+        container.pack(fill='both', expand=True)
+
+        # Left frame: program score list
+        left_frame = tk.Frame(container, width=200, bg='#f0f0f0')
+        left_frame.pack(side='left', fill='y')
+        left_frame.pack_propagate(False)
+
+        for i, s in enumerate(program_scores):
+            is_selected = (i == score_index)
+            btn_bg = 'lightblue' if is_selected else '#f0f0f0'
+            btn_font = ("Arial", 12, "bold") if is_selected else ("Arial", 12)
+
+            def make_open_func(idx=i):
+                return lambda: self.open_concert_viewer(concert, idx)
+
+            score_btn = tk.Button(left_frame, text=s.name, font=btn_font, width=20, anchor='w',
+                                  bg=btn_bg, relief='flat', command=make_open_func())
+            score_btn.pack(fill='x', pady=1, padx=2)
+
+        # Right frame: PDF viewer and navigation
+        right_frame = tk.Frame(container)
+        right_frame.pack(side='left', fill='both', expand=True)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+            tmp.write(score.pdf_data)
+            pdf_path = tmp.name
+
+        self._pdf_doc = fitz.open(pdf_path)
+        self._pdf_page = 0
+        if last:
+            self._pdf_page = self._pdf_doc.page_count - 1
+        self._pdf_score = score
+        self._pdf_img_label = None
+        self._pdf_path = pdf_path
+
+        def show_page(page_num):
+            page = self._pdf_doc.load_page(page_num)
+            pix = page.get_pixmap()
+            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            img.thumbnail((900, 1200))
+            tk_img = ImageTk.PhotoImage(img)
+            if self._pdf_img_label is None:
+                self._pdf_img_label = tk.Label(right_frame, image=tk_img)
+                self._pdf_img_label.image = tk_img
+                self._pdf_img_label.pack(pady=10)
+            else:
+                self._pdf_img_label.configure(image=tk_img)
+                self._pdf_img_label.image = tk_img
+
+        nav_frame = tk.Frame(right_frame)
+        nav_frame.pack(pady=10)
+        prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18), command=go_prev)
+        prev_btn.pack(side='left', padx=20)
+        next_btn = tk.Button(nav_frame, text="\u2192", font=("Arial", 18), command=go_next)
+        next_btn.pack(side='left', padx=20)
+        back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14), command=back_and_unbind)
+        back_button.pack(side='left', padx=20)
+
+        show_page(self._pdf_page)
 
     def edit_concert(self, uid):
         concert = self.concerts_manager.get_concert(uid)
