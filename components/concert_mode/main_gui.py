@@ -285,7 +285,6 @@ class GuiConcertMode:
             concert_uid = concert.UID
             break_idx = score_index
 
-            # Timer state management
             if concert_uid not in self.break_timer_state:
                 self.break_timer_state[concert_uid] = {}
             timer_state = self.break_timer_state[concert_uid].get(break_idx, {})
@@ -318,7 +317,6 @@ class GuiConcertMode:
                     new_duration = int(duration_entry.get()) * 60
                     concert.program[score_index]["duration"] = new_duration
                     self.concerts_manager.save()
-                    # Also update timer state if running
                     if running[0]:
                         save_timer_state(start_time, new_duration)
                     self.open_concert_viewer(concert, score_index)
@@ -333,18 +331,25 @@ class GuiConcertMode:
             def update_timer():
                 if not running[0]:
                     return
-                now = time.time()
-                elapsed = int(now - start_time)
-                left = duration_sec - elapsed
-                if left >= 0:
-                    mins = left // 60
-                    secs = left % 60
-                    timer_label.config(text=f"{mins}:{secs:02d}")
-                else:
-                    mins = (-left) // 60
-                    secs = (-left) % 60
-                    timer_label.config(text=f"Break finished! -{mins}:{secs:02d}")
-                self.master.after(1000, update_timer)
+                # Check if timer_label still exists
+                try:
+                    now = time.time()
+                    elapsed = int(now - start_time)
+                    left = duration_sec - elapsed
+                    if left >= 0:
+                        mins = left // 60
+                        secs = left % 60
+                        timer_label.config(text=f"{mins}:{secs:02d}")
+                    else:
+                        mins = (-left) // 60
+                        secs = (-left) % 60
+                        timer_label.config(text=f"Break finished! -{mins}:{secs:02d}")
+                    # Only schedule next update if label still exists
+                    if str(timer_label) in timer_label.master.tk.call('winfo', 'children', timer_label.master._w):
+                        self.master.after(1000, update_timer)
+                except tk.TclError:
+                    # Widget was destroyed, stop timer
+                    running[0] = False
 
             def start_break():
                 running[0] = True
