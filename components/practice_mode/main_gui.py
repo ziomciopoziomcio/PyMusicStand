@@ -56,6 +56,17 @@ class GuiPracticeMode():
             scores_canvas.configure(scrollregion=scores_canvas.bbox('all'))
         scores_inner_frame.bind('<Configure>', on_frame_configure)
 
+        # Natural scrolling (touch-like)
+        def _on_mousewheel(event):
+            scores_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        def _on_press(event):
+            scores_canvas.scan_mark(event.x, event.y)
+        def _on_drag(event):
+            scores_canvas.scan_dragto(event.x, event.y, gain=1)
+        scores_canvas.bind("<MouseWheel>", _on_mousewheel)
+        scores_canvas.bind("<ButtonPress-1>", _on_press)
+        scores_canvas.bind("<B1-Motion>", _on_drag)
+
         scores_list = self.scores_manager.list_scores()
         for score in scores_list:
             def make_open_func(uid=score.UID):
@@ -150,8 +161,37 @@ class GuiPracticeMode():
         self.master.generate_top_bar()
         self.master.title("Remove Score")
 
-        scores_frame = tk.Frame(self.master)
-        scores_frame.pack(pady=10, fill='both', expand=True)
+        # Create a container frame for canvas and scrollbar
+        scores_frame_container = tk.Frame(self.master)
+        scores_frame_container.pack(pady=10, fill='both', expand=True)
+
+        # Canvas for scrollable area
+        scores_canvas = tk.Canvas(scores_frame_container, height=300)
+        scores_canvas.pack(side='left', fill='both', expand=True)
+
+        # Vertical scrollbar
+        scrollbar = tk.Scrollbar(scores_frame_container, orient='vertical', command=scores_canvas.yview)
+        scrollbar.pack(side='right', fill='y')
+        scores_canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Inner frame for score buttons
+        scores_inner_frame = tk.Frame(scores_canvas)
+        scores_canvas.create_window((0, 0), window=scores_inner_frame, anchor='nw')
+
+        def on_frame_configure(event):
+            scores_canvas.configure(scrollregion=scores_canvas.bbox('all'))
+        scores_inner_frame.bind('<Configure>', on_frame_configure)
+
+        # Natural scrolling (touch-like)
+        def _on_mousewheel(event):
+            scores_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        def _on_press(event):
+            scores_canvas.scan_mark(event.x, event.y)
+        def _on_drag(event):
+            scores_canvas.scan_dragto(event.x, event.y, gain=1)
+        scores_canvas.bind("<MouseWheel>", _on_mousewheel)
+        scores_canvas.bind("<ButtonPress-1>", _on_press)
+        scores_canvas.bind("<B1-Motion>", _on_drag)
 
         scores_list = self.scores_manager.list_scores()
         for score in scores_list:
@@ -162,10 +202,9 @@ class GuiPracticeMode():
                         self.scores_manager.remove_score(s.UID)
                         self.scores_manager.save()
                         self.change_to_practice_mode()
-
                 return remove_func
 
-            score_button = tk.Button(scores_frame, text=score.name, font=("Arial", 12), width=30,
+            score_button = tk.Button(scores_inner_frame, text=score.name, font=("Arial", 12), width=30,
                                      command=make_remove_func())
             score_button.pack(pady=2)
 
