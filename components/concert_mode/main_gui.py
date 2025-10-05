@@ -589,9 +589,14 @@ class GuiConcertMode:
             if not name or not date or not location:
                 messagebox.showerror("Error", "Please fill all fields.")
                 return
-            self.concerts_manager.update_concert(uid, name, date, location, new_program)
+            self.concerts_manager.update_concert(concert.UID, name, date, location, new_program)
             self.concerts_manager.save()
-            self.view_concert_details(uid)
+            # Reload concert object before showing details
+            updated_concert = self.concerts_manager.get_concert(concert.UID)
+            if updated_concert:
+                self.view_concert_details(updated_concert.UID)
+            else:
+                messagebox.showerror("Error", "Concert not found after update.")
 
         submit_btn = tk.Button(self.master, text="Save", font=("Arial", 14), command=submit)
         submit_btn.pack(pady=10)
