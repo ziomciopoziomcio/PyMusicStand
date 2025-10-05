@@ -2,6 +2,7 @@ import sys
 import tempfile
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import time
 
 import pymupdf as fitz
 from PIL import Image, ImageTk
@@ -18,6 +19,7 @@ class GuiConcertMode:
         self.concerts_manager.load()
         self.scores_manager = ScoresManager()
         self.scores_manager.load()
+        self.break_timer_state = {}  # {concert_uid: {index: {"start_time": ..., "duration": ...}}}
 
     def change_to_concert_mode(self):
         self.master.clear_screen()
@@ -236,7 +238,6 @@ class GuiConcertMode:
                 score = self.scores_manager.get_score(item)
                 if score:
                     display_items.append(score)
-
         if not display_items:
             label = tk.Label(self.master, text="No scores in concert program.", font=("Arial", 20), fg="red")
             label.pack(pady=40)
@@ -278,35 +279,102 @@ class GuiConcertMode:
         item = display_items[score_index]
         self._score_index = score_index
 
+        # --- BREAK PAGE ---
         if isinstance(item, dict) and item.get("type") == "break":
-            # Show break page with timer
             duration = item.get("duration", 300)
-            label = tk.Label(self.master, text=f"Break\n{duration//60}:{duration%60:02d} min", font=("Arial", 32), fg="gray")
-            label.pack(pady=80)
+            concert_uid = concert.UID
+            break_idx = score_index
+
+            # Timer state management
+            if concert_uid not in self.break_timer_state:
+                self.break_timer_state[concert_uid] = {}
+            timer_state = self.break_timer_state[concert_uid].get(break_idx, {})
+            running = [False]
+            start_time = timer_state.get("start_time")
+            duration_sec = timer_state.get("duration", duration)
+
+            def save_timer_state(start_time, duration):
+                self.break_timer_state[concert_uid][break_idx] = {
+                    "start_time": start_time,
+                    "duration": duration
+                }
+
+            def clear_timer_state():
+                if break_idx in self.break_timer_state.get(concert_uid, {}):
+                    del self.break_timer_state[concert_uid][break_idx]
+
+            label = tk.Label(self.master, text=f"Break\n{duration_sec//60}:{duration_sec%60:02d} min", font=("Arial", 32), fg="gray")
+            label.pack(pady=40)
+
+            # Edit break duration
+            edit_frame = tk.Frame(self.master)
+            edit_frame.pack(pady=5)
+            tk.Label(edit_frame, text="Edit break duration (min):", font=("Arial", 12)).pack(side='left')
+            duration_entry = tk.Entry(edit_frame, font=("Arial", 12), width=5)
+            duration_entry.insert(0, str(duration_sec // 60))
+            duration_entry.pack(side='left')
+            def save_duration():
+                try:
+                    new_duration = int(duration_entry.get()) * 60
+                    concert.program[score_index]["duration"] = new_duration
+                    self.concerts_manager.save()
+                    # Also update timer state if running
+                    if running[0]:
+                        save_timer_state(start_time, new_duration)
+                    self.open_concert_viewer(concert, score_index)
+                except Exception:
+                    messagebox.showerror("Error", "Invalid duration.")
+            save_btn = tk.Button(edit_frame, text="Save", font=("Arial", 12), command=save_duration)
+            save_btn.pack(side='left', padx=5)
+
             timer_label = tk.Label(self.master, text="", font=("Arial", 24), fg="blue")
             timer_label.pack(pady=10)
-            running = [True]
-            def update_timer(secs_left):
+
+            def update_timer():
                 if not running[0]:
                     return
-                mins = secs_left // 60
-                secs = secs_left % 60
-                timer_label.config(text=f"{mins}:{secs:02d}")
-                if secs_left > 0:
-                    self.master.after(1000, lambda: update_timer(secs_left - 1))
+                now = time.time()
+                elapsed = int(now - start_time)
+                left = duration_sec - elapsed
+                if left >= 0:
+                    mins = left // 60
+                    secs = left % 60
+                    timer_label.config(text=f"{mins}:{secs:02d}")
                 else:
-                    timer_label.config(text="Break finished!")
-            update_timer(duration)
+                    mins = (-left) // 60
+                    secs = (-left) % 60
+                    timer_label.config(text=f"Break finished! -{mins}:{secs:02d}")
+                self.master.after(1000, update_timer)
+
+            def start_break():
+                running[0] = True
+                nonlocal start_time
+                start_time = time.time()
+                save_timer_state(start_time, duration_sec)
+                update_timer()
+
+            # If timer was running, resume
+            if start_time and running[0] is False:
+                running[0] = True
+                update_timer()
+
+            start_btn = tk.Button(self.master, text="Start Break", font=("Arial", 14), command=start_break)
+            start_btn.pack(pady=5)
+
             nav_frame = tk.Frame(self.master)
             nav_frame.pack(pady=10)
+            def stop_and_switch(func):
+                running[0] = False
+                clear_timer_state()
+                func()
             prev_btn = tk.Button(nav_frame, text="\u2190", font=("Arial", 18),
-                                 command=lambda: [running.__setitem__(0, False), self.open_concert_viewer(concert, (score_index - 1) % len(display_items), last=True)])
+                                 command=lambda: stop_and_switch(lambda: self.open_concert_viewer(concert, (score_index - 1) % len(display_items), last=True)))
             prev_btn.pack(side='left', padx=20)
             next_btn = tk.Button(nav_frame, text="\u2192", font=("Arial", 18),
-                                 command=lambda: [running.__setitem__(0, False), self.open_concert_viewer(concert, (score_index + 1) % len(display_items))])
+                                 command=lambda: stop_and_switch(lambda: self.open_concert_viewer(concert, (score_index + 1) % len(display_items))))
             next_btn.pack(side='left', padx=20)
             back_button = tk.Button(nav_frame, text="Back", font=("Arial", 14),
-                                    command=lambda: [running.__setitem__(0, False), self.view_concert_details(concert.UID)])
+                                    command=lambda: stop_and_switch(lambda: self.view_concert_details(concert.UID)))
             back_button.pack(side='left', padx=20)
             return
 
