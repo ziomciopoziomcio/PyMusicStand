@@ -30,8 +30,24 @@ class GuiConcertMode:
         self.master.generate_top_bar()
         self.master.title("Concert mode")
 
-        concerts_frame = tk.Frame(self.master)
-        concerts_frame.pack(pady=10, fill='both', expand=True)
+        # Scrollable concerts list
+        container = tk.Frame(self.master)
+        container.pack(pady=10, fill='both', expand=True)
+        canvas = tk.Canvas(container)
+        scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        concerts_frame = tk.Frame(canvas)
+
+        concerts_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+        canvas.create_window((0, 0), window=concerts_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
         concerts_list = self.concerts_manager.list_concerts()
         for concert in concerts_list:
@@ -73,12 +89,32 @@ class GuiConcertMode:
 
         program_label = tk.Label(form_frame, text="Program (select scores):", font=("Arial", 14))
         program_label.grid(row=3, column=0, padx=5, pady=5)
+
+        # Scrollable scores list for program selection
+        program_container = tk.Frame(form_frame)
+        program_container.grid(row=4, column=0, columnspan=2, sticky='nsew')
+        program_canvas = tk.Canvas(program_container, height=250)
+        program_scrollbar = tk.Scrollbar(program_container, orient="vertical", command=program_canvas.yview)
+        program_scores_frame = tk.Frame(program_canvas)
+
+        program_scores_frame.bind(
+            "<Configure>",
+            lambda e: program_canvas.configure(
+                scrollregion=program_canvas.bbox("all")
+            )
+        )
+        program_canvas.create_window((0, 0), window=program_scores_frame, anchor="nw")
+        program_canvas.configure(yscrollcommand=program_scrollbar.set)
+
+        program_canvas.pack(side="left", fill="both", expand=True)
+        program_scrollbar.pack(side="right", fill="y")
+
         scores = self.scores_manager.list_scores()
         program_vars = []
         for i, score in enumerate(scores):
             var = tk.IntVar()
-            cb = tk.Checkbutton(form_frame, text=score.name, variable=var, font=("Arial", 12))
-            cb.grid(row=4 + i, column=1, sticky='w')
+            cb = tk.Checkbutton(program_scores_frame, text=score.name, variable=var, font=("Arial", 12))
+            cb.pack(anchor='w')
             program_vars.append((var, score.UID))
 
         def submit():
@@ -165,12 +201,32 @@ class GuiConcertMode:
 
         program_label = tk.Label(form_frame, text="Program (select scores):", font=("Arial", 14))
         program_label.grid(row=3, column=0, padx=5, pady=5)
+
+        # Scrollable scores list for program selection
+        program_container = tk.Frame(form_frame)
+        program_container.grid(row=4, column=0, columnspan=2, sticky='nsew')
+        program_canvas = tk.Canvas(program_container, height=250)
+        program_scrollbar = tk.Scrollbar(program_container, orient="vertical", command=program_canvas.yview)
+        program_scores_frame = tk.Frame(program_canvas)
+
+        program_scores_frame.bind(
+            "<Configure>",
+            lambda e: program_canvas.configure(
+                scrollregion=program_canvas.bbox("all")
+            )
+        )
+        program_canvas.create_window((0, 0), window=program_scores_frame, anchor="nw")
+        program_canvas.configure(yscrollcommand=program_scrollbar.set)
+
+        program_canvas.pack(side="left", fill="both", expand=True)
+        program_scrollbar.pack(side="right", fill="y")
+
         scores = self.scores_manager.list_scores()
         program_vars = []
         for i, score in enumerate(scores):
             var = tk.IntVar(value=1 if score.UID in concert.program else 0)
-            cb = tk.Checkbutton(form_frame, text=score.name, variable=var, font=("Arial", 12))
-            cb.grid(row=4 + i, column=1, sticky='w')
+            cb = tk.Checkbutton(program_scores_frame, text=score.name, variable=var, font=("Arial", 12))
+            cb.pack(anchor='w')
             program_vars.append((var, score.UID))
 
         def submit():
