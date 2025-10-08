@@ -155,9 +155,195 @@ class GuiConcertMode:
         tk.Label(details_frame, text=f"Location: {concert.location}", font=("Arial", 14)).pack(anchor='w')
         tk.Label(details_frame, text="Program:", font=("Arial", 14, "bold")).pack(anchor='w', pady=(10,0))
 
-        # Program list with order controls
-        program_frame = tk.Frame(details_frame)
-        program_frame.pack(anchor='w')
+        # --- SCROLLABLE PROGRAM FRAME ---
+        program_container = tk.Frame(details_frame)
+        program_container.pack(anchor='w', fill='both', expand=True)
+        program_canvas = tk.Canvas(program_container, height=250)
+        program_canvas.pack(side='left', fill='both', expand=True)
+        program_scrollbar = tk.Scrollbar(program_container, orient='vertical', command=program_canvas.yview)
+        program_scrollbar.pack(side='right', fill='y')
+        program_canvas.configure(yscrollcommand=program_scrollbar.set)
+        program_frame = tk.Frame(program_canvas)
+        program_canvas.create_window((0, 0), window=program_frame, anchor='nw')
+
+        def on_program_frame_configure(event):
+            program_canvas.configure(scrollregion=program_canvas.bbox('all'))
+        program_frame.bind('<Configure>', on_program_frame_configure)
+
+        # Natural scrolling (y axis only)
+        def _on_mousewheel(event):
+            program_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        def _on_press(event):
+            program_canvas.scan_mark(0, event.y)
+        def _on_drag(event):
+            program_canvas.scan_dragto(0, event.y, gain=1)
+        program_canvas.bind("<MouseWheel>", _on_mousewheel)
+        program_canvas.bind("<ButtonPress-1>", _on_press)
+        program_canvas.bind("<B1-Motion>", _on_drag)
+
+        # Program list with order controls (now inside program_frame)
+        for idx, item in enumerate(concert.program):
+            if isinstance(item, dict) and item.get("type") == "break":
+                duration = item.get("duration", 300)
+                row = tk.Frame(program_frame)
+                row.pack(fill='x', pady=1)
+                tk.Label(row, text=f"{idx+1}. --- Break ({duration//60} min) ---", font=("Arial", 12, "italic"), width=30, anchor='w', fg="gray").pack(side='left')
+                up_btn = tk.Button(row, text="↑", font=("Arial", 10),
+                                   command=lambda i=idx: self.move_program_item(uid, i, i-1))
+                up_btn.pack(side='left')
+                down_btn = tk.Button(row, text="↓", font=("Arial", 10),
+                                     command=lambda i=idx: self.move_program_item(uid, i, i+1))
+                down_btn.pack(side='left')
+                del_btn = tk.Button(row, text="✕", font=("Arial", 10),
+                                    command=lambda i=idx: self.remove_program_item(uid, i))
+                del_btn.pack(side='left')
+            else:
+                score = self.scores_manager.get_score(item)
+                score_name = score.name if score else f"Unknown ({item})"
+                row = tk.Frame(program_frame)
+                row.pack(fill='x', pady=1)
+                tk.Label(row, text=f"{idx+1}. {score_name}", font=("Arial", 12), width=30, anchor='w').pack(side='left')
+                up_btn = tk.Button(row, text="↑", font=("Arial", 10),
+                                   command=lambda i=idx: self.move_program_item(uid, i, i-1))
+                up_btn.pack(side='left')
+                down_btn = tk.Button(row, text="↓", font=("Arial", 10),
+                                     command=lambda i=idx: self.move_program_item(uid, i, i+1))
+                down_btn.pack(side='left')
+                del_btn = tk.Button(row, text="✕", font=("Arial", 10),
+                                    command=lambda i=idx: self.remove_program_item(uid, i))
+                del_btn.pack(side='left')
+
+        btn_frame = tk.Frame(self.master)
+        btn_frame.pack(pady=10)
+        open_btn = tk.Button(btn_frame, text="Open Concert", font=("Arial", 14),
+                             command=lambda: self.open_concert_viewer(concert))
+        open_btn.pack(side='left', padx=10)
+        edit_btn = tk.Button(btn_frame, text="Edit", font=("Arial", 14),
+                             command=lambda: self.edit_concert(uid))
+        edit_btn.pack(side='left', padx=10)
+        delete_btn = tk.Button(btn_frame, text="Delete", font=("Arial", 14),
+                               command=lambda: self.delete_concert(uid))
+        delete_btn.pack(side='left', padx=10)
+        back_btn = tk.Button(btn_frame, text="Back", font=("Arial", 14),
+                             command=self.generate_mode_gui)
+        back_btn.pack(side='left', padx=10)
+
+    def add_concert(self):
+        self.master.clear_screen()
+        self.master.generate_top_bar()
+        self.master.title("Add Concert")
+
+        form_frame = tk.Frame(self.master)
+        form_frame.pack(pady=20)
+
+        name_label = tk.Label(form_frame, text="Concert Name:", font=("Arial", 14))
+        name_label.grid(row=0, column=0, padx=5, pady=5)
+        name_entry = tk.Entry(form_frame, font=("Arial", 14))
+        name_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        date_label = tk.Label(form_frame, text="Date:", font=("Arial", 14))
+        date_label.grid(row=1, column=0, padx=5, pady=5)
+        date_entry = tk.Entry(form_frame, font=("Arial", 14))
+        date_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        location_label = tk.Label(form_frame, text="Location:", font=("Arial", 14))
+        location_label.grid(row=2, column=0, padx=5, pady=5)
+        location_entry = tk.Entry(form_frame, font=("Arial", 14))
+        location_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        program_label = tk.Label(form_frame, text="Program (select scores):", font=("Arial", 14))
+        program_label.grid(row=3, column=0, padx=5, pady=5)
+
+        # Scrollable scores list for program selection
+        program_container = tk.Frame(form_frame)
+        program_container.grid(row=4, column=0, columnspan=2, sticky='nsew')
+        program_canvas = tk.Canvas(program_container, height=250)
+        program_scrollbar = tk.Scrollbar(program_container, orient="vertical", command=program_canvas.yview)
+        program_scores_frame = tk.Frame(program_canvas)
+
+        program_scores_frame.bind(
+            "<Configure>",
+            lambda e: program_canvas.configure(
+                scrollregion=program_canvas.bbox("all")
+            )
+        )
+        program_canvas.create_window((0, 0), window=program_scores_frame, anchor="nw")
+        program_canvas.configure(yscrollcommand=program_scrollbar.set)
+
+        program_canvas.pack(side="left", fill="both", expand=True)
+        program_scrollbar.pack(side="right", fill="y")
+
+        scores = self.scores_manager.list_scores()
+        program_vars = []
+        for i, score in enumerate(scores):
+            var = tk.IntVar()
+            cb = tk.Checkbutton(program_scores_frame, text=score.name, variable=var, font=("Arial", 12))
+            cb.pack(anchor='w')
+            program_vars.append((var, score.UID))
+
+        def submit():
+            name = name_entry.get()
+            date = date_entry.get()
+            location = location_entry.get()
+            program = [uid for var, uid in program_vars if var.get()]
+            if not name or not date or not location:
+                messagebox.showerror("Error", "Please fill all fields.")
+                return
+            self.concerts_manager.add_concert(name, date, location, program)
+            self.concerts_manager.save()
+            self.generate_mode_gui()
+
+        submit_btn = tk.Button(self.master, text="Submit", font=("Arial", 14), command=submit)
+        submit_btn.pack(pady=10)
+
+        cancel_btn = tk.Button(self.master, text="Cancel", font=("Arial", 14),
+                               command=self.generate_mode_gui)
+        cancel_btn.pack(pady=5)
+
+    def view_concert_details(self, uid):
+        concert = self.concerts_manager.get_concert(uid)
+        if not concert:
+            messagebox.showerror("Error", "Concert not found.")
+            return
+        self.master.clear_screen()
+        self.master.generate_top_bar()
+        self.master.title(f"Concert: {concert.name}")
+
+        details_frame = tk.Frame(self.master)
+        details_frame.pack(pady=20)
+
+        tk.Label(details_frame, text=f"Name: {concert.name}", font=("Arial", 14)).pack(anchor='w')
+        tk.Label(details_frame, text=f"Date: {concert.date}", font=("Arial", 14)).pack(anchor='w')
+        tk.Label(details_frame, text=f"Location: {concert.location}", font=("Arial", 14)).pack(anchor='w')
+        tk.Label(details_frame, text="Program:", font=("Arial", 14, "bold")).pack(anchor='w', pady=(10,0))
+
+        # --- SCROLLABLE PROGRAM FRAME ---
+        program_container = tk.Frame(details_frame)
+        program_container.pack(anchor='w', fill='both', expand=True)
+        program_canvas = tk.Canvas(program_container, height=250)
+        program_canvas.pack(side='left', fill='both', expand=True)
+        program_scrollbar = tk.Scrollbar(program_container, orient='vertical', command=program_canvas.yview)
+        program_scrollbar.pack(side='right', fill='y')
+        program_canvas.configure(yscrollcommand=program_scrollbar.set)
+        program_frame = tk.Frame(program_canvas)
+        program_canvas.create_window((0, 0), window=program_frame, anchor='nw')
+
+        def on_program_frame_configure(event):
+            program_canvas.configure(scrollregion=program_canvas.bbox('all'))
+        program_frame.bind('<Configure>', on_program_frame_configure)
+
+        # Natural scrolling (y axis only)
+        def _on_mousewheel(event):
+            program_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        def _on_press(event):
+            program_canvas.scan_mark(0, event.y)
+        def _on_drag(event):
+            program_canvas.scan_dragto(0, event.y, gain=1)
+        program_canvas.bind("<MouseWheel>", _on_mousewheel)
+        program_canvas.bind("<ButtonPress-1>", _on_press)
+        program_canvas.bind("<B1-Motion>", _on_drag)
+
+        # Program list with order controls (now inside program_frame)
         for idx, item in enumerate(concert.program):
             if isinstance(item, dict) and item.get("type") == "break":
                 duration = item.get("duration", 300)
